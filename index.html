@@ -22,7 +22,6 @@
   input, select{background:transparent; border:1px solid rgba(255,255,255,0.04); color:inherit; padding:8px; border-radius:8px}
   button{background:var(--glass); color:inherit; border:1px solid rgba(255,255,255,0.03); padding:8px 10px; border-radius:8px; cursor:pointer}
   button.primary{background:linear-gradient(90deg,var(--accent),#ff8a5b); color:#071018; border:none}
-  button:disabled{opacity:0.5; cursor:not-allowed}
   .players{display:flex; flex-direction:column; gap:8px; margin-top:8px}
   .player{display:flex; gap:8px; align-items:center; padding:8px; border-radius:8px; background:rgba(255,255,255,0.02)}
   .board{height:60vh; border-radius:10px; padding:12px; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.0)); border:1px dashed rgba(255,255,255,0.03)}
@@ -31,8 +30,6 @@
   .items-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:6px}
   .item-chip{background:rgba(255,255,255,0.02); padding:6px 8px; border-radius:8px; font-size:13px}
   .narrator{display:flex; gap:8px; margin-top:8px}
-  .status-badge{background:var(--good); color:#071018; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600}
-  .room-info{display:flex; align-items:center; gap:8px; margin-top:8px}
   @media (max-width:1000px){ .layout{grid-template-columns:1fr; padding:12px} .right{order:3} .left{order:1} }
 </style>
 </head>
@@ -43,52 +40,27 @@
       <p>Mansão isolada no deserto • 5–6 jogadores • 1 assassino • NPC: Sr. Elías</p>
     </div>
     <div style="margin-left:auto; display:flex; gap:8px; align-items:center">
-      <div id="metaLabel" style="color:var(--muted)">Desconectado</div>
+      <div id="metaLabel" style="color:var(--muted)">Pronto</div>
     </div>
   </header>
 
   <main class="layout">
     <!-- LEFT: setup & players -->
     <aside class="panel left">
-      <div><strong>Sistema de Salas</strong></div>
-      
-      <!-- Criar Nova Sala -->
-      <div style="margin-top:12px">
-        <div style="font-size:14px; color:var(--muted)">Criar Nova Sala</div>
-        <div style="display:flex; gap:8px; margin-top:6px">
-          <input id="newRoomInput" placeholder="Nome da nova sala" />
-          <input id="hostNameInput" placeholder="Seu nome" style="width:120px" />
-          <button id="createBtn" class="primary">Criar</button>
-        </div>
-      </div>
-
-      <!-- Entrar em Sala Existente -->
-      <div style="margin-top:12px">
-        <div style="font-size:14px; color:var(--muted)">Entrar em Sala Existente</div>
-        <div style="display:flex; gap:8px; margin-top:6px">
-          <input id="roomInput" placeholder="ID da sala" />
-          <input id="nameInput" placeholder="Seu nickname" style="width:120px" />
-          <button id="joinBtn">Entrar</button>
-        </div>
-      </div>
-
-      <!-- Info da Sala Atual -->
-      <div id="roomInfo" style="display:none; margin-top:12px">
-        <div class="room-info">
-          <span style="color:var(--muted)">Sala:</span>
-          <strong id="currentRoomName"></strong>
-          <span class="status-badge" id="roomStatus">Conectado</span>
-          <button id="leaveBtn" style="margin-left:auto">Sair</button>
-        </div>
+      <div><strong>Entrar / Criar sala</strong></div>
+      <div style="display:flex; gap:8px; margin-top:8px">
+        <input id="roomInput" placeholder="ID da sala (ex: sala123)" />
+        <input id="nameInput" placeholder="Seu nickname" style="width:140px" />
+        <button id="joinBtn" class="primary">Entrar</button>
       </div>
 
       <div style="margin-top:12px; display:flex; gap:8px; align-items:center">
-        <button id="startGameBtn" disabled>Iniciar jogo (sortear papéis)</button>
-        <button id="revealBtn" disabled>Revelar papéis</button>
+        <button id="startGameBtn">Iniciar jogo (sortear papéis)</button>
+        <button id="revealBtn">Revelar papéis (debug)</button>
       </div>
 
       <div style="margin-top:12px">
-        <strong>Jogadores na Sala <span id="playerCount">(0)</span></strong>
+        <strong>Jogadores</strong>
         <div class="players" id="playersList"></div>
       </div>
 
@@ -108,22 +80,22 @@
         <div><strong>Mapa: Mansão Antiga</strong><div style="color:var(--muted); font-size:13px">Use ações ou comandos do narrador.</div></div>
         <div style="display:flex; gap:8px">
           <div id="dayLabel">Dia <strong id="day">1</strong> — <span id="cycle">DIA</span></div>
-          <button id="advanceTurn" disabled>Avançar turno</button>
+          <button id="advanceTurn">Avançar turno</button>
           <button id="resetBtn">Reset</button>
         </div>
       </div>
 
       <div class="board" style="margin-top:12px">
         <div style="display:flex; gap:8px; flex-wrap:wrap">
-          <button id="exploreTree" disabled>Explorar Jardim</button>
-          <button id="exploreWorkshop" disabled>Explorar Oficina</button>
-          <button id="exploreKitchen" disabled>Explorar Cozinha</button>
-          <button id="interactNPC" disabled>Interagir: Sr. Elías</button>
+          <button id="exploreTree">Explorar Jardim</button>
+          <button id="exploreWorkshop">Explorar Oficina</button>
+          <button id="exploreKitchen">Explorar Cozinha</button>
+          <button id="interactNPC">Interagir: Sr. Elías</button>
         </div>
 
         <div class="narrator">
-          <input id="narrInput" placeholder="Narrador: digite 'rode árvore' / 'roda oficina' / 'montar gerador'" disabled />
-          <button id="narrBtn" disabled>Enviar</button>
+          <input id="narrInput" placeholder="Narrador: digite 'rode árvore' / 'roda oficina' / 'montar gerador'" />
+          <button id="narrBtn">Enviar</button>
         </div>
 
         <div class="log" id="log"></div>
@@ -163,13 +135,19 @@
 
 <script type="module">
 /* -------------------------
-  A ÚLTIMA NOITE — Sistema de Salas Corrigido
+  A ÚLTIMA NOITE — single-file
+  - Salve como index.html
+  - Requisitos: abrir por HTTPS (GitHub Pages, Netlify, Firebase Hosting)
+  - Realtime DB URL já configurado para seu projeto
 -------------------------*/
 
 /* Firebase imports */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
+/* ====== CONFIG (já com seu projeto) ======
+   Se quiser mudar o DB URL, atualize DATABASE_URL abaixo.
+*/
 const firebaseConfig = {
   apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
   authDomain: "ultima-noite-f2867.firebaseapp.com",
@@ -185,15 +163,10 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app, DATABASE_URL);
 
 /* ===== utilities / state ===== */
-const local = { 
-  roomId: null, 
-  playerName: null, 
-  playerKey: null,
-  isHost: false
-};
+const local = { roomId:null, playerName:null, playerKey:null };
 let roomStateCache = {};
 
-/* helper log */
+/* helper log (shows locally and optionally will push to room state) */
 function appendLog(text){
   const el = document.getElementById('log');
   const ts = new Date().toLocaleTimeString();
@@ -201,7 +174,7 @@ function appendLog(text){
   if(local.roomId) pushRoomLog(`[${ts}] ${text}`);
 }
 
-/* push room log into DB state.log */
+/* push room log into DB state.log (keeps recent logs) */
 async function pushRoomLog(text){
   if(!local.roomId) return;
   const stateRef = ref(db, `rooms/${local.roomId}/state`);
@@ -211,266 +184,427 @@ async function pushRoomLog(text){
   await update(stateRef, { log: newLog, updatedAt: Date.now() });
 }
 
-/* ===== SISTEMA DE SALAS MELHORADO ===== */
+/* ===== Items and rarities ===== */
+const ITEMS = {
+  recursos: [
+    {name:'Madeira', rarity:'comum'}, {name:'Galhos secos', rarity:'comum'}, {name:'Pedra/Escombros', rarity:'comum'},
+    {name:'Metal enferrujado', rarity:'incomum'}, {name:'Pregos', rarity:'comum'}, {name:'Cordas rasgadas', rarity:'incomum'},
+    {name:'Pano velho', rarity:'comum'}, {name:'Galão de combustível', rarity:'raro'}, {name:'Óleo lubrificante', rarity:'raro'}
+  ],
+  comida: [
+    {name:'Enlatado (feijão)', rarity:'comum'}, {name:'Enlatado (milho)', rarity:'comum'}, {name:'Pão velho', rarity:'comum'},
+    {name:'Água mineral', rarity:'comum'}, {name:'Refrigerante (vencido)', rarity:'incomum'}, {name:'Restos de carne suspeita', rarity:'incomum'},
+    {name:'Frutas secas', rarity:'comum'}, {name:'Café (pó)', rarity:'incomum'}, {name:'Açúcar', rarity:'comum'}, {name:'Isqueiro', rarity:'raro'}
+  ],
+  ferramentas: [
+    {name:'Machado', rarity:'incomum'}, {name:'Chave inglesa', rarity:'comum'}, {name:'Martelo', rarity:'comum'}, {name:'Faca de cozinha', rarity:'comum'},
+    {name:'Lanterna (precisa de pilhas)', rarity:'incomum'}, {name:'Pilhas', rarity:'comum'}, {name:'Corda', rarity:'incomum'}, {name:'Gerador antigo (peças)', rarity:'raro'},
+    {name:'Fusíveis', rarity:'raro'}, {name:'Rádio de comunicação', rarity:'raro'}, {name:'Mapa rasgado', rarity:'incomum'}, {name:'Relógio quebrado (3:33)', rarity:'raro'}
+  ],
+  medicos: [
+    {name:'Kit de primeiros socorros', rarity:'raro'}, {name:'Curativos', rarity:'comum'}, {name:'Antisséptico', rarity:'incomum'},
+    {name:'Pílulas desconhecidas', rarity:'raro'}, {name:'Seringa vazia', rarity:'incomum'}, {name:'Garrafa de álcool', rarity:'comum'}
+  ],
+  defesa: [
+    {name:'Faca', rarity:'comum'}, {name:'Machado (arma)', rarity:'incomum'}, {name:'Taco de beisebol', rarity:'incomum'},
+    {name:'Arma velha (sem balas)', rarity:'raro'}, {name:'Bala avulsa', rarity:'muito raro'}, {name:'Spray inflamável', rarity:'raro'}, {name:'Bastão de ferro', rarity:'incomum'}
+  ],
+  raros: [
+    {name:'Medalhão antigo', rarity:'misterioso'}, {name:'Diário do dono', rarity:'misterioso'}, {name:'Chave prateada', rarity:'misterioso'},
+    {name:'Máscara rachada', rarity:'misterioso'}, {name:'Espelho pequeno', rarity:'misterioso'}, {name:'Rádio que fala sozinho', rarity:'misterioso'},
+    {name:'Relicário', rarity:'misterioso'}
+  ]
+};
 
-// Criar nova sala
-document.getElementById('createBtn').addEventListener('click', async ()=>{
-  const roomName = document.getElementById('newRoomInput').value.trim();
-  const playerName = document.getElementById('hostNameInput').value.trim() || ('Host'+Math.floor(Math.random()*999));
-  
-  if(!roomName){
-    alert('Digite um nome para a sala');
-    return;
-  }
+const RARITY_CHANCE = {comum:60, incomum:30, raro:12, 'muito raro':5, misterioso:3};
 
-  // Usar timestamp + random para evitar conflitos
-  const roomId = roomName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-  
-  try {
-    local.roomId = roomId;
-    local.playerName = playerName;
-    local.isHost = true;
+/* ===== Recipes ===== */
+const RECIPES = {
+  'Gerador reparado': { requires:['Gerador antigo (peças)','Galão de combustível','Fusíveis','Kit de ferramentas'] },
+  'Fogueira': { requires:['Madeira','Galhos secos','Isqueiro'] },
+  'Ferramenta improvisada': { requires:['Metal enferrujado','Pano velho','Corda'] },
+  'Kit médico montado': { requires:['Curativos','Antisséptico','Garrafa de álcool'] },
+  'Lanterna funcional': { requires:['Lanterna (precisa de pilhas)','Pilhas'] },
+  'Antena no telhado': { requires:['Corda','Pregos','Metal enferrujado'] },
+  'Telefone funcionando': { requires:['Rádio de comunicação','Fusíveis','Cabo'] }
+};
 
-    // Criar estrutura da sala
-    await set(ref(db, `rooms/${roomId}/meta`), { 
-      name: roomName,
-      createdAt: Date.now(),
-      host: playerName,
-      status: 'waiting'
-    });
-
-    // Adicionar host como jogador
-    const playerRef = push(ref(db, `rooms/${roomId}/players`));
-    local.playerKey = playerRef.key;
-    
-    await set(playerRef, { 
-      name: playerName, 
-      energia: 80, 
-      fome: 10, 
-      sede: 10, 
-      frio: 5, 
-      alive: true, 
-      inventory: [], 
-      skills: [], 
-      isHost: true,
-      joinedAt: Date.now() 
-    });
-
-    // Inicializar estado do jogo
-    await set(ref(db, `rooms/${roomId}/state`), {
-      day: 1,
-      cycle: 'DIA',
-      turnCount: 0,
-      gameStarted: false,
-      log: `Sala "${roomName}" criada por ${playerName}`
-    });
-
-    appendLog(`Sala "${roomName}" criada com sucesso! ID: ${roomId}`);
-    updateUIForRoomJoined(roomName);
-    startListeningRoom(roomId);
-
-  } catch (error) {
-    console.error('Erro ao criar sala:', error);
-    alert('Erro ao criar sala. Verifique o console.');
-  }
-});
-
-// Entrar em sala existente
-document.getElementById('joinBtn').addEventListener('click', async ()=>{
-  const roomId = document.getElementById('roomInput').value.trim();
-  const playerName = document.getElementById('nameInput').value.trim() || ('Jogador'+Math.floor(Math.random()*999));
-  
-  if(!roomId){
-    alert('Digite o ID da sala');
-    return;
-  }
-
-  try {
-    // Verificar se a sala existe
-    const roomRef = ref(db, `rooms/${roomId}`);
-    const snap = await get(roomRef);
-    
-    if(!snap.exists()){
-      alert('Sala não encontrada. Verifique o ID.');
-      return;
+/* ===== Skills ===== */
+const SKILLS = {
+  'Aventureiro': {
+    description:'A cada 3 turnos, rola d2 para ganhar energia extra',
+    trigger:3, dice:2,
+    async effect(playerKey, playerData, roll){
+      // apply: add energy to player's energy value in DB
+      const newEnergy = Math.min(100, (playerData.energia||0) + roll);
+      await update(ref(db, `rooms/${local.roomId}/players/${playerKey}`), { energia: newEnergy });
+      appendLog(`${playerData.name} ativou Aventureiro e ganhou +${roll} energia.`);
     }
-
-    const roomData = snap.val();
-    local.roomId = roomId;
-    local.playerName = playerName;
-    local.isHost = false;
-
-    // Adicionar jogador
-    const playerRef = push(ref(db, `rooms/${roomId}/players`));
-    local.playerKey = playerRef.key;
-    
-    await set(playerRef, { 
-      name: playerName, 
-      energia: 80, 
-      fome: 10, 
-      sede: 10, 
-      frio: 5, 
-      alive: true, 
-      inventory: [], 
-      skills: [], 
-      isHost: false,
-      joinedAt: Date.now() 
-    });
-
-    appendLog(`Entrou na sala "${roomData.meta?.name || roomId}" como ${playerName}`);
-    updateUIForRoomJoined(roomData.meta?.name || roomId);
-    startListeningRoom(roomId);
-
-  } catch (error) {
-    console.error('Erro ao entrar na sala:', error);
-    alert('Erro ao entrar na sala. Verifique o console.');
+  },
+  'Sobrevivente': {
+    description:'Reduz fome e sede pela metade (aplicado imediatamente quando ganha a skill)',
+    trigger:0, dice:0,
+    async effect(){ /* passive */ }
+  },
+  'Mecânico': {
+    description:'50% mais chance ao craftar (passiva ao tentar craft)',
+    trigger:0, dice:0,
+    async effect(){ /* handled during craft */ }
+  },
+  'Curandeiro': {
+    description:'Kit médico cura +1 adicional',
+    trigger:0, dice:0,
+    async effect(){ /* passive */ }
   }
-});
+};
 
-// Sair da sala
-document.getElementById('leaveBtn').addEventListener('click', async ()=>{
-  if(local.roomId && local.playerKey){
-    await remove(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
-  }
-  resetUI();
-  appendLog('Você saiu da sala.');
-});
+/* ===== helper random ===== */
+function rollDice(sides){ return Math.floor(Math.random()*sides)+1; }
 
-// Atualizar UI quando entrar numa sala
-function updateUIForRoomJoined(roomName){
-  document.getElementById('roomInfo').style.display = 'block';
-  document.getElementById('currentRoomName').textContent = roomName;
-  document.getElementById('metaLabel').innerText = `Sala: ${local.roomId} • ${local.playerName}`;
-  
-  // Ativar controles do jogo
-  document.getElementById('startGameBtn').disabled = !local.isHost;
-  document.getElementById('exploreTree').disabled = false;
-  document.getElementById('exploreWorkshop').disabled = false;
-  document.getElementById('exploreKitchen').disabled = false;
-  document.getElementById('interactNPC').disabled = false;
-  document.getElementById('narrInput').disabled = false;
-  document.getElementById('narrBtn').disabled = false;
-  document.getElementById('advanceTurn').disabled = !local.isHost;
-  document.getElementById('revealBtn').disabled = !local.isHost;
+/* ===== UI population for items grid & crafts ===== */
+function populateItemsGrid(){
+  const el = document.getElementById('itemsGrid'); el.innerHTML='';
+  const all = [...ITEMS.recursos, ...ITEMS.comida, ...ITEMS.ferramentas, ...ITEMS.medicos, ...ITEMS.defesa, ...ITEMS.raros];
+  all.slice(0,20).forEach(it=>{
+    const d=document.createElement('div'); d.className='item-chip'; d.innerText = `${it.name} • ${it.rarity}`; el.appendChild(d);
+  });
 }
 
-// Resetar UI quando sair
-function resetUI(){
-  local.roomId = null;
-  local.playerName = null;
-  local.playerKey = null;
-  local.isHost = false;
-  
-  document.getElementById('roomInfo').style.display = 'none';
-  document.getElementById('metaLabel').innerText = 'Desconectado';
-  document.getElementById('playersList').innerHTML = '';
-  document.getElementById('playerCount').textContent = '(0)';
-  
-  // Desativar controles
-  document.getElementById('startGameBtn').disabled = true;
-  document.getElementById('exploreTree').disabled = true;
-  document.getElementById('exploreWorkshop').disabled = true;
-  document.getElementById('exploreKitchen').disabled = true;
-  document.getElementById('interactNPC').disabled = true;
-  document.getElementById('narrInput').disabled = true;
-  document.getElementById('narrBtn').disabled = true;
-  document.getElementById('advanceTurn').disabled = true;
-  document.getElementById('revealBtn').disabled = true;
+function populateCraftList(){
+  const el = document.getElementById('craftList'); el.innerHTML='';
+  Object.keys(RECIPES).forEach(k=>{
+    const box=document.createElement('div'); box.style.padding='8px'; box.style.marginTop='6px'; box.style.border='1px solid rgba(255,255,255,0.03)'; box.style.borderRadius='8px';
+    box.innerHTML = `<strong>${k}</strong><div style="color:var(--muted);font-size:13px">Requer: ${RECIPES[k].requires.join(', ')}</div><div style="margin-top:6px"><button data-item="${k}" class="craftBtn">Montar</button></div>`;
+    el.appendChild(box);
+  });
+  el.querySelectorAll('.craftBtn').forEach(btn=> btn.addEventListener('click', async (ev)=>{
+    const item = ev.currentTarget.dataset.item;
+    await tryCraftLocal(item);
+  }));
 }
 
-/* ===== RESTANTE DO CÓDIGO (mantido igual) ===== */
+/* ===== ROOM / PLAYER management ===== */
+document.getElementById('joinBtn').addEventListener('click', async ()=>{
+  const room = document.getElementById('roomInput').value.trim();
+  const name = document.getElementById('nameInput').value.trim()||('Jogador'+rollDice(99));
+  if(!room){ alert('Informe ID da sala'); return; }
+  local.roomId = room;
+  local.playerName = name;
+  // ensure meta exists
+  await set(ref(db, `rooms/${room}/meta`), { createdAt: Date.now() });
+  // add player (push)
+  const playerRef = push(ref(db, `rooms/${room}/players`));
+  local.playerKey = playerRef.key;
+  await set(playerRef, { name, energia:80, fome:10, sede:10, frio:5, alive:true, inventory:[], skills:[], joinedAt: Date.now() });
+  appendLog(`Entrou na sala "${room}" como ${name}`);
+  startListeningRoom(room);
+  // update UI state
+  document.getElementById('metaLabel').innerText = `Sala: ${room} • Você: ${name}`;
+});
 
-// [O restante do seu código permanece igual...]
-// Items, skills, exploration, crafting, etc.
-
-/* ===== ROOM LISTENING ===== */
-async function startListeningRoom(roomId){
+async function startListeningRoom(room){
   // players list
-  onValue(ref(db, `rooms/${roomId}/players`), (snap)=>{
+  onValue(ref(db, `rooms/${room}/players`), (snap)=>{
     const data = snap.val() || {};
     renderPlayersFromData(data);
-    updatePlayerCount(data);
   });
-  
-  // room state
-  onValue(ref(db, `rooms/${roomId}/state`), (snap)=>{
+  // room state (turn, day, cycle, log)
+  onValue(ref(db, `rooms/${room}/state`), (snap)=>{
     const data = snap.val() || {};
     roomStateCache = data;
     if(data.day) document.getElementById('day').innerText = data.day;
     if(data.cycle) document.getElementById('cycle').innerText = data.cycle;
     if(data.log) {
+      // show only latest lines in local log (append to top)
       const lines = data.log.split('\n').filter(Boolean);
+      // show up to 40 latest
       const latest = lines.slice(0,40).join('\n');
-      document.getElementById('log').innerText = latest;
-    }
-    // Ativar botão de iniciar jogo se for host e jogo não começou
-    if(local.isHost) {
-      document.getElementById('startGameBtn').disabled = data.gameStarted;
+      document.getElementById('log').innerText = latest + '\n\n' + document.getElementById('log').innerText;
     }
   });
 }
 
-function updatePlayerCount(playersObj){
-  const count = Object.keys(playersObj).length;
-  document.getElementById('playerCount').textContent = `(${count})`;
-}
-
+/* render players */
 function renderPlayersFromData(playersObj){
-  const el = document.getElementById('playersList'); 
-  el.innerHTML='';
-  
+  const el = document.getElementById('playersList'); el.innerHTML='';
+  // playersObj keyed by push keys
   Object.entries(playersObj).forEach(([key, p])=>{
-    const div=document.createElement('div'); 
-    div.className='player';
-    
-    const hostBadge = p.isHost ? '<span style="color:var(--accent); font-size:12px">[HOST]</span>' : '';
-    
-    div.innerHTML = `
-      <div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,#0f1620,#0b1220);display:flex;align-items:center;justify-content:center;font-weight:700">
-        ${(p.name||'P')[0]}
-      </div>
-      <div style="flex:1">
-        <strong>${p.name}</strong> ${hostBadge}
-        <div style="color:var(--muted);font-size:13px">
-          E:${p.energia||0} F:${p.fome||0} S:${p.sede||0} Fr:${p.frio||0} ${p.alive? '':'• MORTO'}
-        </div>
-      </div>`;
-    
+    const div=document.createElement('div'); div.className='player';
+    div.innerHTML = `<div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,#0f1620,#0b1220);display:flex;align-items:center;justify-content:center;font-weight:700">${(p.name||'P')[0]}</div>
+      <div style="flex:1"><strong>${p.name}</strong><div style="color:var(--muted);font-size:13px">E:${p.energia||0} F:${p.fome||0} S:${p.sede||0} Fr:${p.frio||0} ${p.alive? '':'• MORTO'}</div></div>`;
+    // if this is local player, indicate and show control buttons
     if(local.playerKey === key){
       const btns = document.createElement('div');
       btns.innerHTML = `<button id="giveSkillBtn">Adicionar skill (Aventureiro)</button>`;
-      btns.style.display='flex'; 
-      btns.style.flexDirection='column'; 
-      btns.style.gap='6px';
+      btns.style.display='flex'; btns.style.flexDirection='column'; btns.style.gap='6px';
       div.appendChild(btns);
-      
-      setTimeout(()=>{ 
-        const bs=document.getElementById('giveSkillBtn'); 
-        if(bs) bs.onclick = ()=> grantSkillToLocal('Aventureiro'); 
-      }, 80);
+      // attach event
+      setTimeout(()=>{ const bs=document.getElementById('giveSkillBtn'); if(bs) bs.onclick = ()=> grantSkillToLocal('Aventureiro'); }, 80);
     }
     el.appendChild(div);
   });
-  
+  // update inventory panel for local
   renderInventoryPanel();
   renderGlobalStats(playersObj);
 }
 
-// [Mantenha todas as outras funções do seu código original...]
-// populateItemsGrid, populateCraftList, exploreArea, etc.
+/* grant skill to local player (store in DB) */
+async function grantSkillToLocal(skillName){
+  if(!local.roomId || !local.playerKey) return alert('Entre em uma sala primeiro.');
+  const pRef = ref(db, `rooms/${local.roomId}/players/${local.playerKey}`);
+  const snap = await get(pRef);
+  const p = snap.val();
+  if(!p) return;
+  const skills = p.skills || [];
+  if(skills.includes(skillName)) return alert('Você já tem essa skill');
+  skills.push(skillName);
+  await update(pRef, { skills });
+  appendLog(`${p.name} recebeu skill: ${skillName}`);
+}
 
-/* ===== CONFIGURAÇÃO IMPORTANTE NO FIREBASE ===== */
+/* render inventory for local player */
+async function renderInventoryPanel(){
+  const panel = document.getElementById('inventory'); panel.innerHTML = '';
+  if(!local.roomId || !local.playerKey){
+    panel.innerHTML = '<div style="color:var(--muted)">Entre em uma sala para ver inventário</div>';
+    return;
+  }
+  const snap = await get(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
+  const p = snap.exists() ? snap.val() : null;
+  if(!p) { panel.innerHTML = '<div style="color:var(--muted)">Jogador não encontrado</div>'; return; }
+  const inv = p.inventory || [];
+  panel.innerHTML = `<div style="font-weight:700">${p.name}</div>`;
+  if(inv.length===0) panel.innerHTML += '<div style="color:var(--muted)">(vazio)</div>';
+  inv.forEach(it=>{ const d=document.createElement('div'); d.innerText = it; panel.appendChild(d); });
+}
 
-// Adicione este log inicial para debug
-appendLog('Sistema carregado. Use "Criar Nova Sala" ou "Entrar em Sala Existente".');
-appendLog('Dica: Para criar sala, digite um nome e clique em Criar.');
-appendLog('Dica: Para entrar, peça o ID da sala para o host.');
+/* render global stats area */
+function renderGlobalStats(playersObj){
+  const el = document.getElementById('globalStats'); el.innerHTML='';
+  const entries = Object.entries(playersObj||{});
+  if(entries.length===0) { el.innerHTML='<div style="color:var(--muted)">Sem jogadores</div>'; return; }
+  entries.forEach(([k,p])=>{
+    const d=document.createElement('div'); d.style.padding='6px'; d.style.borderBottom='1px solid rgba(255,255,255,0.02)';
+    d.innerHTML = `<strong>${p.name}</strong> — E:${p.energia||0} F:${p.fome||0} S:${p.sede||0} Fr:${p.frio||0} ${p.alive? 'VIVO':'MORTO'}`;
+    el.appendChild(d);
+  });
+}
 
-// Inicializar UI
-populateItemsGrid();
-populateCraftList();
+/* ===== Exploration (areas) ===== */
+function areaPool(area){
+  if(area==='árvore' || area==='arvore') return ITEMS.recursos;
+  if(area==='oficina') return [...ITEMS.ferramentas, ...ITEMS.recursos];
+  if(area==='cozinha') return ITEMS.comida;
+  return [...ITEMS.recursos];
+}
 
-// Cleanup
+/* generic explore with d8 outcome and rarity-based chance */
+async function exploreArea(area){
+  if(!local.roomId || !local.playerKey) return alert('Entre em uma sala primeiro.');
+  const playersSnap = await get(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
+  const player = playersSnap.val();
+  if(!player) return;
+  const roll = rollDice(8);
+  appendLog(`${player.name} explora ${area} e rola d8 -> ${roll}`);
+  const pool = areaPool(area);
+  const candidate = pool[Math.floor(Math.random()*pool.length)];
+  const base = RARITY_CHANCE[candidate.rarity] || 10;
+  const success = (Math.random()*100) < (base + roll*2);
+  if(!success){
+    if(roll<=2){
+      // accident
+      const newEnergy = Math.max(0, (player.energia||0)-15);
+      await update(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`), { energia:newEnergy });
+      appendLog(`${player.name} sofreu um acidente e perdeu energia (-15).`);
+    } else appendLog(`${player.name} não encontrou nada.`);
+    return;
+  }
+  // success: add item to player's inventory
+  const inv = player.inventory || [];
+  inv.push(candidate.name);
+  await update(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`), { inventory: inv });
+  appendLog(`${player.name} encontrou: ${candidate.name} (raridade: ${candidate.rarity})`);
+  renderInventoryPanel();
+}
+
+/* buttons for explore */
+document.getElementById('exploreTree').addEventListener('click', ()=> exploreArea('árvore'));
+document.getElementById('exploreWorkshop').addEventListener('click', ()=> exploreArea('oficina'));
+document.getElementById('exploreKitchen').addEventListener('click', ()=> exploreArea('cozinha'));
+
+/* NPC interaction */
+document.getElementById('interactNPC').addEventListener('click', async ()=>{
+  if(!local.roomId) return alert('Entre em sala');
+  const phrases = ['"Você deveria olhar no porão."','"O antigo dono guardava segredos no cofre."','"Não confie em quem chega tarde."'];
+  appendLog('Sr. Elías: ' + phrases[Math.floor(Math.random()*phrases.length)]);
+});
+
+/* Narrator input (simple parsing) */
+document.getElementById('narrBtn').addEventListener('click', ()=>{
+  const txt = document.getElementById('narrInput').value.trim().toLowerCase();
+  if(!txt) return;
+  if(txt.startsWith('rode') || txt.startsWith('roda') || txt.startsWith('rodar')){
+    if(txt.includes('árvore')||txt.includes('arvore')) return exploreArea('árvore');
+    if(txt.includes('oficina')) return exploreArea('oficina');
+    if(txt.includes('cozinha')) return exploreArea('cozinha');
+    // generic
+    const areas=['árvore','oficina','cozinha']; exploreArea(areas[Math.floor(Math.random()*areas.length)]);
+    return;
+  }
+  if(txt.includes('montar') || txt.includes('consertar') || txt.includes('craft') || txt.includes('fabricar')){
+    // attempt craft command: look for recipe name
+    const recipeName = Object.keys(RECIPES).find(r => txt.includes(r.toLowerCase()) || txt.includes(r.split(' ')[0].toLowerCase()));
+    if(recipeName) tryCraftLocal(recipeName);
+    else appendLog('Comando de craft não reconhecido. Escreva algo como "montar gerador"');
+    return;
+  }
+  appendLog('Comando narrador não reconhecido.');
+});
+
+/* ===== Crafting: local wrapper that calls DB version ===== */
+async function tryCraftLocal(itemName){
+  if(!local.roomId || !local.playerKey) return alert('Entre em uma sala primeiro.');
+  const pRef = ref(db, `rooms/${local.roomId}/players/${local.playerKey}`);
+  const snap = await get(pRef);
+  const p = snap.val();
+  if(!p) return;
+  const inv = p.inventory || [];
+  const recipe = RECIPES[itemName];
+  if(!recipe){ appendLog('Receita não encontrada'); return; }
+  // crafting success chance can be modified by 'Mecânico' skill
+  let successModifier = 0;
+  if((p.skills||[]).includes('Mecânico')) successModifier += 0.5; // example
+  // check requirements
+  const missing = recipe.requires.filter(r => !inv.includes(r));
+  if(missing.length>0){ appendLog(`Craft falhou — faltam: ${missing.join(', ')}`); return; }
+  // remove required (first occurrence)
+  recipe.requires.forEach(r=>{
+    const idx = inv.indexOf(r);
+    if(idx>=0) inv.splice(idx,1);
+  });
+  // add crafted item
+  inv.push(itemName);
+  await update(pRef, { inventory: inv });
+  appendLog(`${p.name} craftou: ${itemName}`);
+  renderInventoryPanel();
+}
+
+/* ===== Turn system + start game (assign assassin) ===== */
+document.getElementById('startGameBtn').addEventListener('click', async ()=>{
+  if(!local.roomId) return alert('Entre em uma sala primeiro.');
+  // fetch players keys
+  const playersSnap = await get(ref(db, `rooms/${local.roomId}/players`));
+  const players = playersSnap.val() || {};
+  const keys = Object.keys(players);
+  if(keys.length < 3) { if(!confirm('Menos de 3 jogadores - deseja continuar?')) return; }
+  // assign assassin random among players
+  const assassinIndex = Math.floor(Math.random()*keys.length);
+  const assassinKey = keys[assassinIndex];
+  // write roles in DB under each player (only for debug) and set game state
+  const updates = {};
+  keys.forEach((k,i)=>{
+    updates[`rooms/${local.roomId}/players/${k}/role`] = (k===assassinKey) ? 'Assassino' : 'Inocente';
+  });
+  await update(ref(db), updates);
+  await set(ref(db, `rooms/${local.roomId}/state`), { day:1, cycle:'DIA', turnCount:0, log:`Jogo iniciado. Papéis sorteados.` });
+  appendLog('Jogo iniciado. Papéis sorteados (1 assassino).');
+});
+
+document.getElementById('revealBtn').addEventListener('click', async ()=>{
+  if(!local.roomId) return alert('Entre em sala');
+  // reveal roles for debugging
+  const psnap = await get(ref(db, `rooms/${local.roomId}/players`));
+  const players = psnap.val() || {};
+  Object.entries(players).forEach(([k,p])=>{
+    appendLog(`${p.name} => ${p.role || '---'}`);
+  });
+});
+
+/* advance turn handler: increments turnCount, triggers skills for current player, handle night attacks */
+document.getElementById('advanceTurn').addEventListener('click', async ()=>{
+  if(!local.roomId) return alert('Entre em sala');
+  const stateRef = ref(db, `rooms/${local.roomId}/state`);
+  const snap = await get(stateRef);
+  const st = snap.exists() ? snap.val() : { day:1, cycle:'DIA', turnCount:0 };
+  const newTurn = (st.turnCount||0) + 1;
+  const newCycle = ((newTurn % 2) === 0) ? 'NOITE' : 'DIA'; // simple alternate every turn
+  const newDay = (newCycle === 'DIA' && st.cycle === 'NOITE') ? ((st.day||1)+1) : (st.day||1);
+  await update(stateRef, { turnCount: newTurn, cycle: newCycle, day: newDay });
+  appendLog(`Turno avançado: ${newTurn} — Ciclo: ${newCycle}`);
+  // skills: trigger for all players if needed (here we trigger for each player individually based on their own skills and turn count)
+  const playersSnap = await get(ref(db, `rooms/${local.roomId}/players`));
+  const players = playersSnap.val() || {};
+  for(const [pKey, pdata] of Object.entries(players)){
+    const skills = pdata.skills || [];
+    for(const sname of skills){
+      const s = SKILLS[sname];
+      if(!s) continue;
+      if(s.trigger && s.trigger>0 && newTurn % s.trigger === 0){
+        // roll and apply
+        const r = rollDice(s.dice);
+        await s.effect(pKey, pdata, r);
+      }
+    }
+  }
+  // if night -> assassin attack
+  if(newCycle === 'NOITE'){
+    // find assassin
+    const assassinEntry = Object.entries(players).find(([k,p]) => p.role === 'Assassino' && p.alive);
+    if(assassinEntry){
+      const [aKey, aData] = assassinEntry;
+      const targets = Object.entries(players).filter(([k,p]) => k !== aKey && p.alive);
+      if(targets.length>0){
+        const [tKey, tData] = targets[Math.floor(Math.random()*targets.length)];
+        const chance = Math.random();
+        if(chance > 0.5){
+          // kill target
+          await update(ref(db, `rooms/${local.roomId}/players/${tKey}`), { alive:false });
+          appendLog(`Noite: ${aData.name} atacou e matou ${tData.name}.`);
+        } else if(chance > 0.25){
+          // wound
+          const newEnergy = Math.max(0, (tData.energia||0)-30);
+          await update(ref(db, `rooms/${local.roomId}/players/${tKey}`), { energia: newEnergy });
+          appendLog(`Noite: ${aData.name} atacou ${tData.name}, que sobreviveu ferido.`);
+        } else appendLog(`Noite: ${aData.name} tentou atacar ${tData.name} e falhou.`);
+      } // else all dead
+    } // else no assassin or dead
+  }
+});
+
+/* reset button */
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(!confirm('Resetar a página? Isso não apagará a sala no banco.')) return;
+  location.reload();
+});
+
+/* tryCraftLocal wrapper used by narrator and craft list */
+async function tryCraftLocal(recipeName){
+  if(!local.roomId || !local.playerKey) return alert('Entre em sala');
+  await tryCraftLocalInner(recipeName);
+}
+async function tryCraftLocalInner(recipeName){
+  // same as tryCraftLocal but isolated (we used tryCraftLocal earlier)
+  const pRef = ref(db, `rooms/${local.roomId}/players/${local.playerKey}`);
+  const snap = await get(pRef);
+  const p = snap.val();
+  if(!p) return;
+  const inv = p.inventory || [];
+  const recipe = RECIPES[recipeName];
+  if(!recipe){ appendLog('Receita não encontrada'); return; }
+  const missing = recipe.requires.filter(r=> !inv.includes(r));
+  if(missing.length>0){ appendLog(`Faltam: ${missing.join(', ')}`); return; }
+  // consume
+  recipe.requires.forEach(r=>{
+    const idx = inv.indexOf(r);
+    if(idx>=0) inv.splice(idx,1);
+  });
+  inv.push(recipeName);
+  await update(pRef, { inventory: inv });
+  appendLog(`${p.name} craftou ${recipeName}.`);
+  renderInventoryPanel();
+}
+
+/* cleanup on unload: remove player from room if possible */
 window.addEventListener('beforeunload', async ()=>{
   try{
     if(local.roomId && local.playerKey){
@@ -479,6 +613,10 @@ window.addEventListener('beforeunload', async ()=>{
   }catch(e){ /* ignore */ }
 });
 
+/* initial UI population */
+populateItemsGrid();
+populateCraftList();
+appendLog('Protótipo carregado. Entre em uma sala para começar.');
 </script>
 </body>
 </html>
