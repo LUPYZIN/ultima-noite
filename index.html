@@ -1,622 +1,275 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>A ÚLTIMA NOITE — Multiplayer</title>
-<meta name="description" content="Protótipo multiplayer - A Última Noite (uso Firebase Realtime DB)" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#071018; --panel:#0f1820; --muted:#9fb0bf; --accent:#ff6b35; --glass:rgba(255,255,255,0.03);
-    --good:#3bd17a; --bad:#ff5c6c;
-  }
-  *{box-sizing:border-box; font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;}
-  body{margin:0; min-height:100vh; background:linear-gradient(180deg,#05070a 0%, #071018 100%); color:#e6f0f6}
-  header{display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.03)}
-  header h1{margin:0; font-size:18px}
-  header p{margin:0; color:var(--muted); font-size:13px}
-  .layout{display:grid; grid-template-columns:320px 1fr 380px; gap:16px; padding:16px}
-  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); border-radius:12px; padding:12px; box-shadow:0 8px 30px rgba(0,0,0,0.5)}
-  .left .small{font-size:13px}
-  input, select{background:transparent; border:1px solid rgba(255,255,255,0.04); color:inherit; padding:8px; border-radius:8px}
-  button{background:var(--glass); color:inherit; border:1px solid rgba(255,255,255,0.03); padding:8px 10px; border-radius:8px; cursor:pointer}
-  button.primary{background:linear-gradient(90deg,var(--accent),#ff8a5b); color:#071018; border:none}
-  .players{display:flex; flex-direction:column; gap:8px; margin-top:8px}
-  .player{display:flex; gap:8px; align-items:center; padding:8px; border-radius:8px; background:rgba(255,255,255,0.02)}
-  .board{height:60vh; border-radius:10px; padding:12px; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.0)); border:1px dashed rgba(255,255,255,0.03)}
-  .log{height:32vh; overflow:auto; margin-top:12px; padding:10px; border-radius:8px; background:rgba(0,0,0,0.25)}
-  .widgets{display:flex; flex-direction:column; gap:10px}
-  .items-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:6px}
-  .item-chip{background:rgba(255,255,255,0.02); padding:6px 8px; border-radius:8px; font-size:13px}
-  .narrator{display:flex; gap:8px; margin-top:8px}
-  @media (max-width:1000px){ .layout{grid-template-columns:1fr; padding:12px} .right{order:3} .left{order:1} }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A ÚLTIMA NOITE</title>
+  <style>
+    body {
+      background-color: #0d0d0d;
+      color: #e0e0e0;
+      font-family: "Courier New", monospace;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .panel {
+      background: rgba(30, 30, 30, 0.95);
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 0 10px #000;
+    }
+
+    input, button, select {
+      background: #111;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 8px;
+      margin: 5px;
+      width: calc(100% - 12px);
+    }
+
+    button:hover {
+      background: #222;
+      cursor: pointer;
+    }
+
+    .inventory, .log, .crafting, .skills {
+      margin-top: 10px;
+      font-size: 0.95em;
+    }
+
+    .craft-item {
+      background: #1a1a1a;
+      margin: 4px;
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #333;
+    }
+
+    @media (max-width: 600px) {
+      body { font-size: 0.9em; }
+    }
+  </style>
 </head>
 <body>
+
   <header>
-    <div>
-      <h1>A ÚLTIMA NOITE — Multiplayer</h1>
-      <p>Mansão isolada no deserto • 5–6 jogadores • 1 assassino • NPC: Sr. Elías</p>
-    </div>
-    <div style="margin-left:auto; display:flex; gap:8px; align-items:center">
-      <div id="metaLabel" style="color:var(--muted)">Pronto</div>
-    </div>
+    <h1>🕯️ A ÚLTIMA NOITE 🕯️</h1>
+    <p>Mansão velha e isolada no meio do deserto</p>
   </header>
 
-  <main class="layout">
-    <!-- LEFT: setup & players -->
-    <aside class="panel left">
-      <div><strong>Entrar / Criar sala</strong></div>
-      <div style="display:flex; gap:8px; margin-top:8px">
-        <input id="roomInput" placeholder="ID da sala (ex: sala123)" />
-        <input id="nameInput" placeholder="Seu nickname" style="width:140px" />
-        <button id="joinBtn" class="primary">Entrar</button>
-      </div>
+  <div class="panel" id="loginPanel">
+    <h3>Entrar no jogo</h3>
+    <input id="nickname" placeholder="Seu nickname" />
+    <input id="roomId" placeholder="ID da sala (ex: sala1)" />
+    <button id="joinRoomBtn">Entrar / Criar Sala</button>
+  </div>
 
-      <div style="margin-top:12px; display:flex; gap:8px; align-items:center">
-        <button id="startGameBtn">Iniciar jogo (sortear papéis)</button>
-        <button id="revealBtn">Revelar papéis (debug)</button>
-      </div>
+  <div class="panel" id="gamePanel" style="display:none;">
+    <h3 id="roomTitle"></h3>
+    <p><b>Jogadores na sala:</b> <span id="playerList"></span></p>
 
-      <div style="margin-top:12px">
-        <strong>Jogadores</strong>
-        <div class="players" id="playersList"></div>
-      </div>
+    <div class="inventory">
+      <h4>🎒 Inventário</h4>
+      <div id="inventoryList"></div>
+      <button id="rollDiceBtn">🎲 Rodar dado (buscar item)</button>
+    </div>
 
-      <div style="margin-top:12px">
-        <strong>Objetivos</strong>
-        <ul style="color:var(--muted); margin-top:8px">
-          <li>Ligar para a polícia (telefone / rádio / antena)</li>
-          <li>Restaurar energia (gerador + combustível + fusíveis)</li>
-          <li>Sobreviver até o amanhecer / descobrir o assassino</li>
-        </ul>
-      </div>
-    </aside>
+    <div class="crafting">
+      <h4>⚒️ Crafting</h4>
+      <div id="craftList"></div>
+    </div>
 
-    <!-- CENTER: map, actions, logs -->
-    <section class="panel center">
-      <div style="display:flex; justify-content:space-between; align-items:center">
-        <div><strong>Mapa: Mansão Antiga</strong><div style="color:var(--muted); font-size:13px">Use ações ou comandos do narrador.</div></div>
-        <div style="display:flex; gap:8px">
-          <div id="dayLabel">Dia <strong id="day">1</strong> — <span id="cycle">DIA</span></div>
-          <button id="advanceTurn">Avançar turno</button>
-          <button id="resetBtn">Reset</button>
-        </div>
-      </div>
+    <div class="skills">
+      <h4>💪 Skills</h4>
+      <div id="skillsList"></div>
+    </div>
 
-      <div class="board" style="margin-top:12px">
-        <div style="display:flex; gap:8px; flex-wrap:wrap">
-          <button id="exploreTree">Explorar Jardim</button>
-          <button id="exploreWorkshop">Explorar Oficina</button>
-          <button id="exploreKitchen">Explorar Cozinha</button>
-          <button id="interactNPC">Interagir: Sr. Elías</button>
-        </div>
+    <div class="log">
+      <h4>📜 Log</h4>
+      <div id="logBox"></div>
+    </div>
+  </div>
 
-        <div class="narrator">
-          <input id="narrInput" placeholder="Narrador: digite 'rode árvore' / 'roda oficina' / 'montar gerador'" />
-          <button id="narrBtn">Enviar</button>
-        </div>
+  <script type="module">
+    // ======= FIREBASE CONFIG =======
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, set, get, push, update, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-        <div class="log" id="log"></div>
-      </div>
-    </section>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
+      authDomain: "ultima-noite-f2867.firebaseapp.com",
+      projectId: "ultima-noite-f2867",
+      storageBucket: "ultima-noite-f2867.firebasestorage.app",
+      messagingSenderId: "553820660993",
+      appId: "1:553820660993:web:cb1019cc2361a54e4c6700",
+      measurementId: "G-J8XZBFZH32",
+      databaseURL: "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app"
+    };
 
-    <!-- RIGHT: stats, inventory, crafting -->
-    <aside class="panel right">
-      <div class="widgets">
-        <div class="widget">
-          <h3>Sistema de Sobrevivência</h3>
-          <div id="globalStats"></div>
-        </div>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-        <div class="widget">
-          <h3>Inventário (você)</h3>
-          <div id="inventory" style="max-height:160px; overflow:auto"></div>
-        </div>
+    // ======= GAME VARIABLES =======
+    let nickname = "";
+    let roomId = "";
+    let playerRef;
+    let inventory = [];
 
-        <div class="widget">
-          <h3>Crafting</h3>
-          <div id="craftList"></div>
-        </div>
+    const ITEMS = [
+      "Madeira", "Galhos secos", "Metal enferrujado", "Pano velho", "Pregos",
+      "Enlatados", "Água mineral", "Isqueiro", "Martelo", "Corda",
+      "Lanterna", "Curativos", "Faca", "Taco de beisebol", "Diário misterioso"
+    ];
 
-        <div class="widget">
-          <h3>Skills</h3>
-          <div id="skillsPanel"></div>
-        </div>
+    const RECIPES = [
+      { result: "Fogueira", requires: ["Madeira", "Isqueiro"] },
+      { result: "Tocha", requires: ["Galhos secos", "Pano velho", "Isqueiro"] },
+      { result: "Kit de Reparos", requires: ["Metal enferrujado", "Pregos", "Martelo"] },
+      { result: "Filtro de Água", requires: ["Pano velho", "Água mineral"] },
+    ];
 
-        <div class="widget">
-          <h3>Itens exemplo por área</h3>
-          <div class="items-grid" id="itemsGrid"></div>
-        </div>
-      </div>
-    </aside>
-  </main>
+    const SKILLS = [
+      { name: "Sobrevivente Experiente", desc: "Roda 1d2 a cada 3 turnos e ganha +1 item se cair 2.", cooldown: 3, turns: 0 }
+    ];
 
-<script type="module">
-/* -------------------------
-  A ÚLTIMA NOITE — single-file
-  - Salve como index.html
-  - Requisitos: abrir por HTTPS (GitHub Pages, Netlify, Firebase Hosting)
-  - Realtime DB URL já configurado para seu projeto
--------------------------*/
+    // ======= UI ELEMENTS =======
+    const loginPanel = document.getElementById("loginPanel");
+    const gamePanel = document.getElementById("gamePanel");
+    const roomTitle = document.getElementById("roomTitle");
+    const playerList = document.getElementById("playerList");
+    const inventoryList = document.getElementById("inventoryList");
+    const rollDiceBtn = document.getElementById("rollDiceBtn");
+    const logBox = document.getElementById("logBox");
+    const craftList = document.getElementById("craftList");
+    const skillsList = document.getElementById("skillsList");
 
-/* Firebase imports */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    // ======= JOIN ROOM =======
+    document.getElementById("joinRoomBtn").onclick = async () => {
+      nickname = document.getElementById("nickname").value.trim();
+      roomId = document.getElementById("roomId").value.trim();
+      if (!nickname || !roomId) return alert("Preencha nickname e ID da sala.");
 
-/* ====== CONFIG (já com seu projeto) ======
-   Se quiser mudar o DB URL, atualize DATABASE_URL abaixo.
-*/
-const firebaseConfig = {
-  apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
-  authDomain: "ultima-noite-f2867.firebaseapp.com",
-  projectId: "ultima-noite-f2867",
-  storageBucket: "ultima-noite-f2867.firebasestorage.app",
-  messagingSenderId: "553820660993",
-  appId: "1:553820660993:web:cb1019cc2361a54e4c6700",
-  measurementId: "G-J8XZBFZH32"
-};
-const DATABASE_URL = "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app";
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app, DATABASE_URL);
-
-/* ===== utilities / state ===== */
-const local = { roomId:null, playerName:null, playerKey:null };
-let roomStateCache = {};
-
-/* helper log (shows locally and optionally will push to room state) */
-function appendLog(text){
-  const el = document.getElementById('log');
-  const ts = new Date().toLocaleTimeString();
-  el.innerHTML = `<div style="margin-bottom:6px"><small style="color:var(--muted)">[${ts}]</small> ${text}</div>` + el.innerHTML;
-  if(local.roomId) pushRoomLog(`[${ts}] ${text}`);
-}
-
-/* push room log into DB state.log (keeps recent logs) */
-async function pushRoomLog(text){
-  if(!local.roomId) return;
-  const stateRef = ref(db, `rooms/${local.roomId}/state`);
-  const snap = await get(stateRef);
-  const cur = snap.exists() ? snap.val() : {};
-  const newLog = (text + "\n") + (cur.log || "");
-  await update(stateRef, { log: newLog, updatedAt: Date.now() });
-}
-
-/* ===== Items and rarities ===== */
-const ITEMS = {
-  recursos: [
-    {name:'Madeira', rarity:'comum'}, {name:'Galhos secos', rarity:'comum'}, {name:'Pedra/Escombros', rarity:'comum'},
-    {name:'Metal enferrujado', rarity:'incomum'}, {name:'Pregos', rarity:'comum'}, {name:'Cordas rasgadas', rarity:'incomum'},
-    {name:'Pano velho', rarity:'comum'}, {name:'Galão de combustível', rarity:'raro'}, {name:'Óleo lubrificante', rarity:'raro'}
-  ],
-  comida: [
-    {name:'Enlatado (feijão)', rarity:'comum'}, {name:'Enlatado (milho)', rarity:'comum'}, {name:'Pão velho', rarity:'comum'},
-    {name:'Água mineral', rarity:'comum'}, {name:'Refrigerante (vencido)', rarity:'incomum'}, {name:'Restos de carne suspeita', rarity:'incomum'},
-    {name:'Frutas secas', rarity:'comum'}, {name:'Café (pó)', rarity:'incomum'}, {name:'Açúcar', rarity:'comum'}, {name:'Isqueiro', rarity:'raro'}
-  ],
-  ferramentas: [
-    {name:'Machado', rarity:'incomum'}, {name:'Chave inglesa', rarity:'comum'}, {name:'Martelo', rarity:'comum'}, {name:'Faca de cozinha', rarity:'comum'},
-    {name:'Lanterna (precisa de pilhas)', rarity:'incomum'}, {name:'Pilhas', rarity:'comum'}, {name:'Corda', rarity:'incomum'}, {name:'Gerador antigo (peças)', rarity:'raro'},
-    {name:'Fusíveis', rarity:'raro'}, {name:'Rádio de comunicação', rarity:'raro'}, {name:'Mapa rasgado', rarity:'incomum'}, {name:'Relógio quebrado (3:33)', rarity:'raro'}
-  ],
-  medicos: [
-    {name:'Kit de primeiros socorros', rarity:'raro'}, {name:'Curativos', rarity:'comum'}, {name:'Antisséptico', rarity:'incomum'},
-    {name:'Pílulas desconhecidas', rarity:'raro'}, {name:'Seringa vazia', rarity:'incomum'}, {name:'Garrafa de álcool', rarity:'comum'}
-  ],
-  defesa: [
-    {name:'Faca', rarity:'comum'}, {name:'Machado (arma)', rarity:'incomum'}, {name:'Taco de beisebol', rarity:'incomum'},
-    {name:'Arma velha (sem balas)', rarity:'raro'}, {name:'Bala avulsa', rarity:'muito raro'}, {name:'Spray inflamável', rarity:'raro'}, {name:'Bastão de ferro', rarity:'incomum'}
-  ],
-  raros: [
-    {name:'Medalhão antigo', rarity:'misterioso'}, {name:'Diário do dono', rarity:'misterioso'}, {name:'Chave prateada', rarity:'misterioso'},
-    {name:'Máscara rachada', rarity:'misterioso'}, {name:'Espelho pequeno', rarity:'misterioso'}, {name:'Rádio que fala sozinho', rarity:'misterioso'},
-    {name:'Relicário', rarity:'misterioso'}
-  ]
-};
-
-const RARITY_CHANCE = {comum:60, incomum:30, raro:12, 'muito raro':5, misterioso:3};
-
-/* ===== Recipes ===== */
-const RECIPES = {
-  'Gerador reparado': { requires:['Gerador antigo (peças)','Galão de combustível','Fusíveis','Kit de ferramentas'] },
-  'Fogueira': { requires:['Madeira','Galhos secos','Isqueiro'] },
-  'Ferramenta improvisada': { requires:['Metal enferrujado','Pano velho','Corda'] },
-  'Kit médico montado': { requires:['Curativos','Antisséptico','Garrafa de álcool'] },
-  'Lanterna funcional': { requires:['Lanterna (precisa de pilhas)','Pilhas'] },
-  'Antena no telhado': { requires:['Corda','Pregos','Metal enferrujado'] },
-  'Telefone funcionando': { requires:['Rádio de comunicação','Fusíveis','Cabo'] }
-};
-
-/* ===== Skills ===== */
-const SKILLS = {
-  'Aventureiro': {
-    description:'A cada 3 turnos, rola d2 para ganhar energia extra',
-    trigger:3, dice:2,
-    async effect(playerKey, playerData, roll){
-      // apply: add energy to player's energy value in DB
-      const newEnergy = Math.min(100, (playerData.energia||0) + roll);
-      await update(ref(db, `rooms/${local.roomId}/players/${playerKey}`), { energia: newEnergy });
-      appendLog(`${playerData.name} ativou Aventureiro e ganhou +${roll} energia.`);
-    }
-  },
-  'Sobrevivente': {
-    description:'Reduz fome e sede pela metade (aplicado imediatamente quando ganha a skill)',
-    trigger:0, dice:0,
-    async effect(){ /* passive */ }
-  },
-  'Mecânico': {
-    description:'50% mais chance ao craftar (passiva ao tentar craft)',
-    trigger:0, dice:0,
-    async effect(){ /* handled during craft */ }
-  },
-  'Curandeiro': {
-    description:'Kit médico cura +1 adicional',
-    trigger:0, dice:0,
-    async effect(){ /* passive */ }
-  }
-};
-
-/* ===== helper random ===== */
-function rollDice(sides){ return Math.floor(Math.random()*sides)+1; }
-
-/* ===== UI population for items grid & crafts ===== */
-function populateItemsGrid(){
-  const el = document.getElementById('itemsGrid'); el.innerHTML='';
-  const all = [...ITEMS.recursos, ...ITEMS.comida, ...ITEMS.ferramentas, ...ITEMS.medicos, ...ITEMS.defesa, ...ITEMS.raros];
-  all.slice(0,20).forEach(it=>{
-    const d=document.createElement('div'); d.className='item-chip'; d.innerText = `${it.name} • ${it.rarity}`; el.appendChild(d);
-  });
-}
-
-function populateCraftList(){
-  const el = document.getElementById('craftList'); el.innerHTML='';
-  Object.keys(RECIPES).forEach(k=>{
-    const box=document.createElement('div'); box.style.padding='8px'; box.style.marginTop='6px'; box.style.border='1px solid rgba(255,255,255,0.03)'; box.style.borderRadius='8px';
-    box.innerHTML = `<strong>${k}</strong><div style="color:var(--muted);font-size:13px">Requer: ${RECIPES[k].requires.join(', ')}</div><div style="margin-top:6px"><button data-item="${k}" class="craftBtn">Montar</button></div>`;
-    el.appendChild(box);
-  });
-  el.querySelectorAll('.craftBtn').forEach(btn=> btn.addEventListener('click', async (ev)=>{
-    const item = ev.currentTarget.dataset.item;
-    await tryCraftLocal(item);
-  }));
-}
-
-/* ===== ROOM / PLAYER management ===== */
-document.getElementById('joinBtn').addEventListener('click', async ()=>{
-  const room = document.getElementById('roomInput').value.trim();
-  const name = document.getElementById('nameInput').value.trim()||('Jogador'+rollDice(99));
-  if(!room){ alert('Informe ID da sala'); return; }
-  local.roomId = room;
-  local.playerName = name;
-  // ensure meta exists
-  await set(ref(db, `rooms/${room}/meta`), { createdAt: Date.now() });
-  // add player (push)
-  const playerRef = push(ref(db, `rooms/${room}/players`));
-  local.playerKey = playerRef.key;
-  await set(playerRef, { name, energia:80, fome:10, sede:10, frio:5, alive:true, inventory:[], skills:[], joinedAt: Date.now() });
-  appendLog(`Entrou na sala "${room}" como ${name}`);
-  startListeningRoom(room);
-  // update UI state
-  document.getElementById('metaLabel').innerText = `Sala: ${room} • Você: ${name}`;
-});
-
-async function startListeningRoom(room){
-  // players list
-  onValue(ref(db, `rooms/${room}/players`), (snap)=>{
-    const data = snap.val() || {};
-    renderPlayersFromData(data);
-  });
-  // room state (turn, day, cycle, log)
-  onValue(ref(db, `rooms/${room}/state`), (snap)=>{
-    const data = snap.val() || {};
-    roomStateCache = data;
-    if(data.day) document.getElementById('day').innerText = data.day;
-    if(data.cycle) document.getElementById('cycle').innerText = data.cycle;
-    if(data.log) {
-      // show only latest lines in local log (append to top)
-      const lines = data.log.split('\n').filter(Boolean);
-      // show up to 40 latest
-      const latest = lines.slice(0,40).join('\n');
-      document.getElementById('log').innerText = latest + '\n\n' + document.getElementById('log').innerText;
-    }
-  });
-}
-
-/* render players */
-function renderPlayersFromData(playersObj){
-  const el = document.getElementById('playersList'); el.innerHTML='';
-  // playersObj keyed by push keys
-  Object.entries(playersObj).forEach(([key, p])=>{
-    const div=document.createElement('div'); div.className='player';
-    div.innerHTML = `<div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,#0f1620,#0b1220);display:flex;align-items:center;justify-content:center;font-weight:700">${(p.name||'P')[0]}</div>
-      <div style="flex:1"><strong>${p.name}</strong><div style="color:var(--muted);font-size:13px">E:${p.energia||0} F:${p.fome||0} S:${p.sede||0} Fr:${p.frio||0} ${p.alive? '':'• MORTO'}</div></div>`;
-    // if this is local player, indicate and show control buttons
-    if(local.playerKey === key){
-      const btns = document.createElement('div');
-      btns.innerHTML = `<button id="giveSkillBtn">Adicionar skill (Aventureiro)</button>`;
-      btns.style.display='flex'; btns.style.flexDirection='column'; btns.style.gap='6px';
-      div.appendChild(btns);
-      // attach event
-      setTimeout(()=>{ const bs=document.getElementById('giveSkillBtn'); if(bs) bs.onclick = ()=> grantSkillToLocal('Aventureiro'); }, 80);
-    }
-    el.appendChild(div);
-  });
-  // update inventory panel for local
-  renderInventoryPanel();
-  renderGlobalStats(playersObj);
-}
-
-/* grant skill to local player (store in DB) */
-async function grantSkillToLocal(skillName){
-  if(!local.roomId || !local.playerKey) return alert('Entre em uma sala primeiro.');
-  const pRef = ref(db, `rooms/${local.roomId}/players/${local.playerKey}`);
-  const snap = await get(pRef);
-  const p = snap.val();
-  if(!p) return;
-  const skills = p.skills || [];
-  if(skills.includes(skillName)) return alert('Você já tem essa skill');
-  skills.push(skillName);
-  await update(pRef, { skills });
-  appendLog(`${p.name} recebeu skill: ${skillName}`);
-}
-
-/* render inventory for local player */
-async function renderInventoryPanel(){
-  const panel = document.getElementById('inventory'); panel.innerHTML = '';
-  if(!local.roomId || !local.playerKey){
-    panel.innerHTML = '<div style="color:var(--muted)">Entre em uma sala para ver inventário</div>';
-    return;
-  }
-  const snap = await get(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
-  const p = snap.exists() ? snap.val() : null;
-  if(!p) { panel.innerHTML = '<div style="color:var(--muted)">Jogador não encontrado</div>'; return; }
-  const inv = p.inventory || [];
-  panel.innerHTML = `<div style="font-weight:700">${p.name}</div>`;
-  if(inv.length===0) panel.innerHTML += '<div style="color:var(--muted)">(vazio)</div>';
-  inv.forEach(it=>{ const d=document.createElement('div'); d.innerText = it; panel.appendChild(d); });
-}
-
-/* render global stats area */
-function renderGlobalStats(playersObj){
-  const el = document.getElementById('globalStats'); el.innerHTML='';
-  const entries = Object.entries(playersObj||{});
-  if(entries.length===0) { el.innerHTML='<div style="color:var(--muted)">Sem jogadores</div>'; return; }
-  entries.forEach(([k,p])=>{
-    const d=document.createElement('div'); d.style.padding='6px'; d.style.borderBottom='1px solid rgba(255,255,255,0.02)';
-    d.innerHTML = `<strong>${p.name}</strong> — E:${p.energia||0} F:${p.fome||0} S:${p.sede||0} Fr:${p.frio||0} ${p.alive? 'VIVO':'MORTO'}`;
-    el.appendChild(d);
-  });
-}
-
-/* ===== Exploration (areas) ===== */
-function areaPool(area){
-  if(area==='árvore' || area==='arvore') return ITEMS.recursos;
-  if(area==='oficina') return [...ITEMS.ferramentas, ...ITEMS.recursos];
-  if(area==='cozinha') return ITEMS.comida;
-  return [...ITEMS.recursos];
-}
-
-/* generic explore with d8 outcome and rarity-based chance */
-async function exploreArea(area){
-  if(!local.roomId || !local.playerKey) return alert('Entre em uma sala primeiro.');
-  const playersSnap = await get(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
-  const player = playersSnap.val();
-  if(!player) return;
-  const roll = rollDice(8);
-  appendLog(`${player.name} explora ${area} e rola d8 -> ${roll}`);
-  const pool = areaPool(area);
-  const candidate = pool[Math.floor(Math.random()*pool.length)];
-  const base = RARITY_CHANCE[candidate.rarity] || 10;
-  const success = (Math.random()*100) < (base + roll*2);
-  if(!success){
-    if(roll<=2){
-      // accident
-      const newEnergy = Math.max(0, (player.energia||0)-15);
-      await update(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`), { energia:newEnergy });
-      appendLog(`${player.name} sofreu um acidente e perdeu energia (-15).`);
-    } else appendLog(`${player.name} não encontrou nada.`);
-    return;
-  }
-  // success: add item to player's inventory
-  const inv = player.inventory || [];
-  inv.push(candidate.name);
-  await update(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`), { inventory: inv });
-  appendLog(`${player.name} encontrou: ${candidate.name} (raridade: ${candidate.rarity})`);
-  renderInventoryPanel();
-}
-
-/* buttons for explore */
-document.getElementById('exploreTree').addEventListener('click', ()=> exploreArea('árvore'));
-document.getElementById('exploreWorkshop').addEventListener('click', ()=> exploreArea('oficina'));
-document.getElementById('exploreKitchen').addEventListener('click', ()=> exploreArea('cozinha'));
-
-/* NPC interaction */
-document.getElementById('interactNPC').addEventListener('click', async ()=>{
-  if(!local.roomId) return alert('Entre em sala');
-  const phrases = ['"Você deveria olhar no porão."','"O antigo dono guardava segredos no cofre."','"Não confie em quem chega tarde."'];
-  appendLog('Sr. Elías: ' + phrases[Math.floor(Math.random()*phrases.length)]);
-});
-
-/* Narrator input (simple parsing) */
-document.getElementById('narrBtn').addEventListener('click', ()=>{
-  const txt = document.getElementById('narrInput').value.trim().toLowerCase();
-  if(!txt) return;
-  if(txt.startsWith('rode') || txt.startsWith('roda') || txt.startsWith('rodar')){
-    if(txt.includes('árvore')||txt.includes('arvore')) return exploreArea('árvore');
-    if(txt.includes('oficina')) return exploreArea('oficina');
-    if(txt.includes('cozinha')) return exploreArea('cozinha');
-    // generic
-    const areas=['árvore','oficina','cozinha']; exploreArea(areas[Math.floor(Math.random()*areas.length)]);
-    return;
-  }
-  if(txt.includes('montar') || txt.includes('consertar') || txt.includes('craft') || txt.includes('fabricar')){
-    // attempt craft command: look for recipe name
-    const recipeName = Object.keys(RECIPES).find(r => txt.includes(r.toLowerCase()) || txt.includes(r.split(' ')[0].toLowerCase()));
-    if(recipeName) tryCraftLocal(recipeName);
-    else appendLog('Comando de craft não reconhecido. Escreva algo como "montar gerador"');
-    return;
-  }
-  appendLog('Comando narrador não reconhecido.');
-});
-
-/* ===== Crafting: local wrapper that calls DB version ===== */
-async function tryCraftLocal(itemName){
-  if(!local.roomId || !local.playerKey) return alert('Entre em uma sala primeiro.');
-  const pRef = ref(db, `rooms/${local.roomId}/players/${local.playerKey}`);
-  const snap = await get(pRef);
-  const p = snap.val();
-  if(!p) return;
-  const inv = p.inventory || [];
-  const recipe = RECIPES[itemName];
-  if(!recipe){ appendLog('Receita não encontrada'); return; }
-  // crafting success chance can be modified by 'Mecânico' skill
-  let successModifier = 0;
-  if((p.skills||[]).includes('Mecânico')) successModifier += 0.5; // example
-  // check requirements
-  const missing = recipe.requires.filter(r => !inv.includes(r));
-  if(missing.length>0){ appendLog(`Craft falhou — faltam: ${missing.join(', ')}`); return; }
-  // remove required (first occurrence)
-  recipe.requires.forEach(r=>{
-    const idx = inv.indexOf(r);
-    if(idx>=0) inv.splice(idx,1);
-  });
-  // add crafted item
-  inv.push(itemName);
-  await update(pRef, { inventory: inv });
-  appendLog(`${p.name} craftou: ${itemName}`);
-  renderInventoryPanel();
-}
-
-/* ===== Turn system + start game (assign assassin) ===== */
-document.getElementById('startGameBtn').addEventListener('click', async ()=>{
-  if(!local.roomId) return alert('Entre em uma sala primeiro.');
-  // fetch players keys
-  const playersSnap = await get(ref(db, `rooms/${local.roomId}/players`));
-  const players = playersSnap.val() || {};
-  const keys = Object.keys(players);
-  if(keys.length < 3) { if(!confirm('Menos de 3 jogadores - deseja continuar?')) return; }
-  // assign assassin random among players
-  const assassinIndex = Math.floor(Math.random()*keys.length);
-  const assassinKey = keys[assassinIndex];
-  // write roles in DB under each player (only for debug) and set game state
-  const updates = {};
-  keys.forEach((k,i)=>{
-    updates[`rooms/${local.roomId}/players/${k}/role`] = (k===assassinKey) ? 'Assassino' : 'Inocente';
-  });
-  await update(ref(db), updates);
-  await set(ref(db, `rooms/${local.roomId}/state`), { day:1, cycle:'DIA', turnCount:0, log:`Jogo iniciado. Papéis sorteados.` });
-  appendLog('Jogo iniciado. Papéis sorteados (1 assassino).');
-});
-
-document.getElementById('revealBtn').addEventListener('click', async ()=>{
-  if(!local.roomId) return alert('Entre em sala');
-  // reveal roles for debugging
-  const psnap = await get(ref(db, `rooms/${local.roomId}/players`));
-  const players = psnap.val() || {};
-  Object.entries(players).forEach(([k,p])=>{
-    appendLog(`${p.name} => ${p.role || '---'}`);
-  });
-});
-
-/* advance turn handler: increments turnCount, triggers skills for current player, handle night attacks */
-document.getElementById('advanceTurn').addEventListener('click', async ()=>{
-  if(!local.roomId) return alert('Entre em sala');
-  const stateRef = ref(db, `rooms/${local.roomId}/state`);
-  const snap = await get(stateRef);
-  const st = snap.exists() ? snap.val() : { day:1, cycle:'DIA', turnCount:0 };
-  const newTurn = (st.turnCount||0) + 1;
-  const newCycle = ((newTurn % 2) === 0) ? 'NOITE' : 'DIA'; // simple alternate every turn
-  const newDay = (newCycle === 'DIA' && st.cycle === 'NOITE') ? ((st.day||1)+1) : (st.day||1);
-  await update(stateRef, { turnCount: newTurn, cycle: newCycle, day: newDay });
-  appendLog(`Turno avançado: ${newTurn} — Ciclo: ${newCycle}`);
-  // skills: trigger for all players if needed (here we trigger for each player individually based on their own skills and turn count)
-  const playersSnap = await get(ref(db, `rooms/${local.roomId}/players`));
-  const players = playersSnap.val() || {};
-  for(const [pKey, pdata] of Object.entries(players)){
-    const skills = pdata.skills || [];
-    for(const sname of skills){
-      const s = SKILLS[sname];
-      if(!s) continue;
-      if(s.trigger && s.trigger>0 && newTurn % s.trigger === 0){
-        // roll and apply
-        const r = rollDice(s.dice);
-        await s.effect(pKey, pdata, r);
+      const roomRef = ref(db, `rooms/${roomId}`);
+      const snapshot = await get(roomRef);
+      if (!snapshot.exists()) {
+        await set(roomRef, { players: {} });
       }
+
+      playerRef = ref(db, `rooms/${roomId}/players/${nickname}`);
+      await set(playerRef, { nickname, inventory: [] });
+
+      loginPanel.style.display = "none";
+      gamePanel.style.display = "block";
+      roomTitle.innerText = `Sala: ${roomId}`;
+      log(`🔹 Entrou na sala "${roomId}" como ${nickname}.`);
+
+      listenPlayers(roomRef);
+      renderCrafting();
+      renderSkills();
+    };
+
+    // ======= LISTEN PLAYERS =======
+    function listenPlayers(roomRef) {
+      onValue(ref(db, `rooms/${roomId}/players`), (snapshot) => {
+        const players = snapshot.val() || {};
+        playerList.innerText = Object.keys(players).join(", ");
+      });
     }
-  }
-  // if night -> assassin attack
-  if(newCycle === 'NOITE'){
-    // find assassin
-    const assassinEntry = Object.entries(players).find(([k,p]) => p.role === 'Assassino' && p.alive);
-    if(assassinEntry){
-      const [aKey, aData] = assassinEntry;
-      const targets = Object.entries(players).filter(([k,p]) => k !== aKey && p.alive);
-      if(targets.length>0){
-        const [tKey, tData] = targets[Math.floor(Math.random()*targets.length)];
-        const chance = Math.random();
-        if(chance > 0.5){
-          // kill target
-          await update(ref(db, `rooms/${local.roomId}/players/${tKey}`), { alive:false });
-          appendLog(`Noite: ${aData.name} atacou e matou ${tData.name}.`);
-        } else if(chance > 0.25){
-          // wound
-          const newEnergy = Math.max(0, (tData.energia||0)-30);
-          await update(ref(db, `rooms/${local.roomId}/players/${tKey}`), { energia: newEnergy });
-          appendLog(`Noite: ${aData.name} atacou ${tData.name}, que sobreviveu ferido.`);
-        } else appendLog(`Noite: ${aData.name} tentou atacar ${tData.name} e falhou.`);
-      } // else all dead
-    } // else no assassin or dead
-  }
-});
 
-/* reset button */
-document.getElementById('resetBtn').addEventListener('click', ()=>{
-  if(!confirm('Resetar a página? Isso não apagará a sala no banco.')) return;
-  location.reload();
-});
+    // ======= ROLL DICE =======
+    rollDiceBtn.onclick = async () => {
+      const roll = Math.floor(Math.random() * 8) + 1;
+      let msg = `🎲 Rolou ${roll}. `;
+      if (roll >= 6) {
+        const item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+        inventory.push(item);
+        await update(playerRef, { inventory });
+        msg += `Conseguiu ${item}!`;
+      } else if (roll >= 3) {
+        msg += "Encontrou algo, mas se machucou levemente.";
+      } else {
+        msg += "Nada encontrado e sofreu um pequeno acidente.";
+      }
+      log(msg);
+      renderInventory();
+      checkSkills();
+    };
 
-/* tryCraftLocal wrapper used by narrator and craft list */
-async function tryCraftLocal(recipeName){
-  if(!local.roomId || !local.playerKey) return alert('Entre em sala');
-  await tryCraftLocalInner(recipeName);
-}
-async function tryCraftLocalInner(recipeName){
-  // same as tryCraftLocal but isolated (we used tryCraftLocal earlier)
-  const pRef = ref(db, `rooms/${local.roomId}/players/${local.playerKey}`);
-  const snap = await get(pRef);
-  const p = snap.val();
-  if(!p) return;
-  const inv = p.inventory || [];
-  const recipe = RECIPES[recipeName];
-  if(!recipe){ appendLog('Receita não encontrada'); return; }
-  const missing = recipe.requires.filter(r=> !inv.includes(r));
-  if(missing.length>0){ appendLog(`Faltam: ${missing.join(', ')}`); return; }
-  // consume
-  recipe.requires.forEach(r=>{
-    const idx = inv.indexOf(r);
-    if(idx>=0) inv.splice(idx,1);
-  });
-  inv.push(recipeName);
-  await update(pRef, { inventory: inv });
-  appendLog(`${p.name} craftou ${recipeName}.`);
-  renderInventoryPanel();
-}
-
-/* cleanup on unload: remove player from room if possible */
-window.addEventListener('beforeunload', async ()=>{
-  try{
-    if(local.roomId && local.playerKey){
-      await remove(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
+    // ======= INVENTORY DISPLAY =======
+    function renderInventory() {
+      inventoryList.innerHTML = inventory.length ? inventory.join(", ") : "Vazio";
     }
-  }catch(e){ /* ignore */ }
-});
 
-/* initial UI population */
-populateItemsGrid();
-populateCraftList();
-appendLog('Protótipo carregado. Entre em uma sala para começar.');
-</script>
+    // ======= CRAFTING =======
+    function renderCrafting() {
+      craftList.innerHTML = "";
+      RECIPES.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "craft-item";
+        div.innerHTML = `<b>${r.result}</b> → precisa de: ${r.requires.join(", ")} <br>
+        <button>Craftar</button>`;
+        div.querySelector("button").onclick = async () => {
+          if (r.requires.every(req => inventory.includes(req))) {
+            r.requires.forEach(req => inventory.splice(inventory.indexOf(req), 1));
+            inventory.push(r.result);
+            await update(playerRef, { inventory });
+            renderInventory();
+            log(`✅ Criou ${r.result}!`);
+          } else log("❌ Itens insuficientes.");
+        };
+        craftList.appendChild(div);
+      });
+    }
+
+    // ======= SKILLS =======
+    function renderSkills() {
+      skillsList.innerHTML = "";
+      SKILLS.forEach(skill => {
+        const div = document.createElement("div");
+        div.innerHTML = `<b>${skill.name}</b> - ${skill.desc} (Cooldown: ${skill.cooldown})`;
+        skillsList.appendChild(div);
+      });
+    }
+
+    function checkSkills() {
+      SKILLS.forEach(skill => {
+        skill.turns++;
+        if (skill.turns >= skill.cooldown) {
+          skill.turns = 0;
+          const roll = Math.floor(Math.random() * 2) + 1;
+          if (roll === 2) {
+            const item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+            inventory.push(item);
+            update(playerRef, { inventory });
+            log(`⭐ Skill "${skill.name}" ativou! Ganhou ${item}.`);
+            renderInventory();
+          }
+        }
+      });
+    }
+
+    // ======= LOG DISPLAY =======
+    function log(text) {
+      const line = document.createElement("div");
+      line.textContent = text;
+      logBox.prepend(line);
+    }
+
+  </script>
 </body>
 </html>
