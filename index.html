@@ -19,7 +19,7 @@
   .layout{display:grid; grid-template-columns:320px 1fr 380px; gap:16px; padding:16px}
   .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); border-radius:12px; padding:12px; box-shadow:0 8px 30px rgba(0,0,0,0.5)}
   .left .small{font-size:13px}
-  input, select{background:transparent; border:1px solid rgba(255,255,255,0.04); color:inherit; padding:8px; border-radius:8px}
+  input, select{background:transparent; border:1px solid rgba(255,255,255,0.04); color:inherit; padding:8px; border-radius:8px; width:100%}
   button{background:var(--glass); color:inherit; border:1px solid rgba(255,255,255,0.03); padding:8px 10px; border-radius:8px; cursor:pointer}
   button.primary{background:linear-gradient(90deg,var(--accent),#ff8a5b); color:#071018; border:none}
   button:disabled{opacity:0.5; cursor:not-allowed}
@@ -32,7 +32,9 @@
   .item-chip{background:rgba(255,255,255,0.02); padding:6px 8px; border-radius:8px; font-size:13px}
   .narrator{display:flex; gap:8px; margin-top:8px}
   .status-badge{background:var(--good); color:#071018; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600}
-  .room-info{display:flex; align-items:center; gap:8px; margin-top:8px}
+  .room-info{display:flex; align-items:center; gap:8px; margin-top:8px; padding:8px; background:rgba(255,255,255,0.02); border-radius:8px;}
+  .form-group{margin-bottom:12px;}
+  .form-label{display:block; margin-bottom:4px; font-size:13px; color:var(--muted);}
   @media (max-width:1000px){ .layout{grid-template-columns:1fr; padding:12px} .right{order:3} .left{order:1} }
 </style>
 </head>
@@ -53,63 +55,56 @@
       <div><strong>Sistema de Salas</strong></div>
       
       <!-- Criar Nova Sala -->
-      <div style="margin-top:12px">
-        <div style="font-size:14px; color:var(--muted)">Criar Nova Sala</div>
-        <div style="display:flex; gap:8px; margin-top:6px">
-          <input id="newRoomInput" placeholder="Nome da nova sala" />
-          <input id="hostNameInput" placeholder="Seu nome" style="width:120px" />
-          <button id="createBtn" class="primary">Criar</button>
-        </div>
+      <div class="form-group">
+        <div class="form-label">Criar Nova Sala</div>
+        <input id="newRoomInput" placeholder="Nome da nova sala" />
+        <input id="hostNameInput" placeholder="Seu nome" style="margin-top:8px" />
+        <button id="createBtn" class="primary" style="margin-top:8px; width:100%">Criar Sala</button>
       </div>
 
       <!-- Entrar em Sala Existente -->
-      <div style="margin-top:12px">
-        <div style="font-size:14px; color:var(--muted)">Entrar em Sala Existente</div>
-        <div style="display:flex; gap:8px; margin-top:6px">
-          <input id="roomInput" placeholder="ID da sala" />
-          <input id="nameInput" placeholder="Seu nickname" style="width:120px" />
-          <button id="joinBtn">Entrar</button>
-        </div>
+      <div class="form-group">
+        <div class="form-label">Entrar em Sala Existente</div>
+        <input id="roomInput" placeholder="ID da sala (ex: sala123)" />
+        <input id="nameInput" placeholder="Seu nickname" style="margin-top:8px" />
+        <button id="joinBtn" style="margin-top:8px; width:100%">Entrar na Sala</button>
       </div>
 
       <!-- Info da Sala Atual -->
-      <div id="roomInfo" style="display:none; margin-top:12px">
+      <div id="roomInfo" style="display:none;">
         <div class="room-info">
-          <span style="color:var(--muted)">Sala:</span>
-          <strong id="currentRoomName"></strong>
+          <div style="flex:1">
+            <div style="font-size:14px; color:var(--muted)">Sala:</div>
+            <strong id="currentRoomName"></strong>
+          </div>
           <span class="status-badge" id="roomStatus">Conectado</span>
-          <button id="leaveBtn" style="margin-left:auto">Sair</button>
         </div>
+        <button id="leaveBtn" style="margin-top:8px; width:100%">Sair da Sala</button>
       </div>
 
-      <div style="margin-top:12px; display:flex; gap:8px; align-items:center">
+      <div style="margin-top:12px; display:flex; gap:8px; flex-direction:column;">
         <button id="startGameBtn" disabled>Iniciar jogo (sortear papéis)</button>
-        <button id="revealBtn" disabled>Revelar papéis</button>
+        <button id="revealBtn" disabled>Revelar papéis (apenas host)</button>
       </div>
 
       <div style="margin-top:12px">
         <strong>Jogadores na Sala <span id="playerCount">(0)</span></strong>
-        <div class="players" id="playersList"></div>
-      </div>
-
-      <div style="margin-top:12px">
-        <strong>Objetivos</strong>
-        <ul style="color:var(--muted); margin-top:8px">
-          <li>Ligar para a polícia (telefone / rádio / antena)</li>
-          <li>Restaurar energia (gerador + combustível + fusíveis)</li>
-          <li>Sobreviver até o amanhecer / descobrir o assassino</li>
-        </ul>
+        <div class="players" id="playersList">
+          <div style="text-align:center; color:var(--muted); padding:20px">
+            Nenhum jogador na sala
+          </div>
+        </div>
       </div>
     </aside>
 
     <!-- CENTER: map, actions, logs -->
     <section class="panel center">
       <div style="display:flex; justify-content:space-between; align-items:center">
-        <div><strong>Mapa: Mansão Antiga</strong><div style="color:var(--muted); font-size:13px">Use ações ou comandos do narrador.</div></div>
+        <div><strong>Mapa: Mansão Antiga</strong><div style="color:var(--muted); font-size:13px">Entre em uma sala para começar</div></div>
         <div style="display:flex; gap:8px">
           <div id="dayLabel">Dia <strong id="day">1</strong> — <span id="cycle">DIA</span></div>
           <button id="advanceTurn" disabled>Avançar turno</button>
-          <button id="resetBtn">Reset</button>
+          <button id="resetBtn">Reset Local</button>
         </div>
       </div>
 
@@ -122,11 +117,15 @@
         </div>
 
         <div class="narrator">
-          <input id="narrInput" placeholder="Narrador: digite 'rode árvore' / 'roda oficina' / 'montar gerador'" disabled />
+          <input id="narrInput" placeholder="Entre em uma sala para usar os comandos" disabled />
           <button id="narrBtn" disabled>Enviar</button>
         </div>
 
-        <div class="log" id="log"></div>
+        <div class="log" id="log">
+          <div style="text-align:center; color:var(--muted); padding:20px">
+            Log do jogo aparecerá aqui
+          </div>
+        </div>
       </div>
     </section>
 
@@ -134,28 +133,27 @@
     <aside class="panel right">
       <div class="widgets">
         <div class="widget">
-          <h3>Sistema de Sobrevivência</h3>
-          <div id="globalStats"></div>
+          <h3>Status do Sistema</h3>
+          <div id="systemStatus" style="color:var(--muted)">
+            Aguardando conexão com a sala...
+          </div>
         </div>
 
         <div class="widget">
-          <h3>Inventário (você)</h3>
-          <div id="inventory" style="max-height:160px; overflow:auto"></div>
+          <h3>Inventário</h3>
+          <div id="inventory" style="min-height:80px; color:var(--muted)">
+            Entre em uma sala para ver inventário
+          </div>
         </div>
 
         <div class="widget">
-          <h3>Crafting</h3>
-          <div id="craftList"></div>
-        </div>
-
-        <div class="widget">
-          <h3>Skills</h3>
-          <div id="skillsPanel"></div>
-        </div>
-
-        <div class="widget">
-          <h3>Itens exemplo por área</h3>
-          <div class="items-grid" id="itemsGrid"></div>
+          <h3>Como Jogar</h3>
+          <div style="font-size:13px; color:var(--muted); line-height:1.4">
+            <p>1. <strong>Crie</strong> uma sala ou <strong>entre</strong> em uma existente</p>
+            <p>2. O <strong>host</strong> inicia o jogo</p>
+            <p>3. Explore locais para encontrar itens</p>
+            <p>4. Sobreviva e descubra o assassino!</p>
+          </div>
         </div>
       </div>
     </aside>
@@ -179,6 +177,8 @@ const firebaseConfig = {
   appId: "1:553820660993:web:cb1019cc2361a54e4c6700",
   measurementId: "G-J8XZBFZH32"
 };
+
+// IMPORTANTE: Use a URL correta do seu Realtime Database
 const DATABASE_URL = "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app";
 
 const app = initializeApp(firebaseConfig);
@@ -191,24 +191,39 @@ const local = {
   playerKey: null,
   isHost: false
 };
-let roomStateCache = {};
 
 /* helper log */
 function appendLog(text){
   const el = document.getElementById('log');
   const ts = new Date().toLocaleTimeString();
+  
+  // Remove mensagem inicial se existir
+  if(el.innerHTML.includes('Log do jogo aparecerá aqui')){
+    el.innerHTML = '';
+  }
+  
   el.innerHTML = `<div style="margin-bottom:6px"><small style="color:var(--muted)">[${ts}]</small> ${text}</div>` + el.innerHTML;
-  if(local.roomId) pushRoomLog(`[${ts}] ${text}`);
+  
+  if(local.roomId) {
+    pushRoomLog(`[${ts}] ${text}`);
+  }
 }
 
 /* push room log into DB state.log */
 async function pushRoomLog(text){
   if(!local.roomId) return;
-  const stateRef = ref(db, `rooms/${local.roomId}/state`);
-  const snap = await get(stateRef);
-  const cur = snap.exists() ? snap.val() : {};
-  const newLog = (text + "\n") + (cur.log || "");
-  await update(stateRef, { log: newLog, updatedAt: Date.now() });
+  try {
+    const stateRef = ref(db, `rooms/${local.roomId}/state`);
+    const snap = await get(stateRef);
+    const cur = snap.exists() ? snap.val() : {};
+    const newLog = (text + "\n") + (cur.log || "").substring(0, 2000); // Limitar tamanho
+    await update(stateRef, { 
+      log: newLog, 
+      updatedAt: Date.now() 
+    });
+  } catch (error) {
+    console.error('Erro ao salvar log:', error);
+  }
 }
 
 /* ===== SISTEMA DE SALAS MELHORADO ===== */
@@ -223,10 +238,12 @@ document.getElementById('createBtn').addEventListener('click', async ()=>{
     return;
   }
 
-  // Usar timestamp + random para evitar conflitos
-  const roomId = roomName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-  
   try {
+    // Gerar ID simples para a sala
+    const roomId = roomName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
+    appendLog(`Tentando criar sala: ${roomId}...`);
+
     local.roomId = roomId;
     local.playerName = playerName;
     local.isHost = true;
@@ -236,7 +253,8 @@ document.getElementById('createBtn').addEventListener('click', async ()=>{
       name: roomName,
       createdAt: Date.now(),
       host: playerName,
-      status: 'waiting'
+      status: 'waiting',
+      playerCount: 1
     });
 
     // Adicionar host como jogador
@@ -265,12 +283,16 @@ document.getElementById('createBtn').addEventListener('click', async ()=>{
       log: `Sala "${roomName}" criada por ${playerName}`
     });
 
-    appendLog(`Sala "${roomName}" criada com sucesso! ID: ${roomId}`);
-    updateUIForRoomJoined(roomName);
+    appendLog(`✅ Sala "${roomName}" criada com sucesso!`);
+    appendLog(`ID da sala: <strong>${roomId}</strong>`);
+    appendLog(`Compartilhe este ID com outros jogadores!`);
+    
+    updateUIForRoomJoined(roomName, roomId);
     startListeningRoom(roomId);
 
   } catch (error) {
     console.error('Erro ao criar sala:', error);
+    appendLog(`❌ Erro ao criar sala: ${error.message}`);
     alert('Erro ao criar sala. Verifique o console.');
   }
 });
@@ -286,12 +308,15 @@ document.getElementById('joinBtn').addEventListener('click', async ()=>{
   }
 
   try {
+    appendLog(`Tentando entrar na sala: ${roomId}...`);
+    
     // Verificar se a sala existe
     const roomRef = ref(db, `rooms/${roomId}`);
     const snap = await get(roomRef);
     
     if(!snap.exists()){
-      alert('Sala não encontrada. Verifique o ID.');
+      appendLog(`❌ Sala "${roomId}" não encontrada`);
+      alert('Sala não encontrada. Verifique o ID ou crie uma nova sala.');
       return;
     }
 
@@ -317,30 +342,52 @@ document.getElementById('joinBtn').addEventListener('click', async ()=>{
       joinedAt: Date.now() 
     });
 
-    appendLog(`Entrou na sala "${roomData.meta?.name || roomId}" como ${playerName}`);
-    updateUIForRoomJoined(roomData.meta?.name || roomId);
+    // Atualizar contador de jogadores
+    const currentCount = roomData.meta?.playerCount || 0;
+    await update(ref(db, `rooms/${roomId}/meta`), {
+      playerCount: currentCount + 1
+    });
+
+    appendLog(`✅ Entrou na sala "${roomData.meta?.name || roomId}" como ${playerName}`);
+    updateUIForRoomJoined(roomData.meta?.name || roomId, roomId);
     startListeningRoom(roomId);
 
   } catch (error) {
     console.error('Erro ao entrar na sala:', error);
-    alert('Erro ao entrar na sala. Verifique o console.');
+    appendLog(`❌ Erro ao entrar na sala: ${error.message}`);
+    alert('Erro ao entrar na sala. Verifique se o ID está correto.');
   }
 });
 
 // Sair da sala
 document.getElementById('leaveBtn').addEventListener('click', async ()=>{
   if(local.roomId && local.playerKey){
-    await remove(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
+    try {
+      await remove(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
+      
+      // Atualizar contador de jogadores
+      const roomRef = ref(db, `rooms/${local.roomId}/meta`);
+      const snap = await get(roomRef);
+      if(snap.exists()){
+        const roomData = snap.val();
+        const newCount = Math.max(0, (roomData.playerCount || 1) - 1);
+        await update(roomRef, { playerCount: newCount });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao sair da sala:', error);
+    }
   }
   resetUI();
   appendLog('Você saiu da sala.');
 });
 
 // Atualizar UI quando entrar numa sala
-function updateUIForRoomJoined(roomName){
+function updateUIForRoomJoined(roomName, roomId){
   document.getElementById('roomInfo').style.display = 'block';
-  document.getElementById('currentRoomName').textContent = roomName;
-  document.getElementById('metaLabel').innerText = `Sala: ${local.roomId} • ${local.playerName}`;
+  document.getElementById('currentRoomName').textContent = `${roomName} (${roomId})`;
+  document.getElementById('metaLabel').innerText = `Sala: ${roomId} • ${local.playerName}`;
+  document.getElementById('systemStatus').innerHTML = `<span style="color:var(--good)">✅ Conectado</span><br><small>Sala: ${roomId}</small>`;
   
   // Ativar controles do jogo
   document.getElementById('startGameBtn').disabled = !local.isHost;
@@ -352,6 +399,8 @@ function updateUIForRoomJoined(roomName){
   document.getElementById('narrBtn').disabled = false;
   document.getElementById('advanceTurn').disabled = !local.isHost;
   document.getElementById('revealBtn').disabled = !local.isHost;
+  
+  document.getElementById('narrInput').placeholder = "Narrador: digite comandos...";
 }
 
 // Resetar UI quando sair
@@ -363,8 +412,10 @@ function resetUI(){
   
   document.getElementById('roomInfo').style.display = 'none';
   document.getElementById('metaLabel').innerText = 'Desconectado';
-  document.getElementById('playersList').innerHTML = '';
+  document.getElementById('playersList').innerHTML = '<div style="text-align:center; color:var(--muted); padding:20px">Nenhum jogador na sala</div>';
   document.getElementById('playerCount').textContent = '(0)';
+  document.getElementById('systemStatus').innerHTML = 'Aguardando conexão com a sala...';
+  document.getElementById('inventory').innerHTML = 'Entre em uma sala para ver inventário';
   
   // Desativar controles
   document.getElementById('startGameBtn').disabled = true;
@@ -376,12 +427,9 @@ function resetUI(){
   document.getElementById('narrBtn').disabled = true;
   document.getElementById('advanceTurn').disabled = true;
   document.getElementById('revealBtn').disabled = true;
+  
+  document.getElementById('narrInput').placeholder = "Entre em uma sala para usar os comandos";
 }
-
-/* ===== RESTANTE DO CÓDIGO (mantido igual) ===== */
-
-// [O restante do seu código permanece igual...]
-// Items, skills, exploration, crafting, etc.
 
 /* ===== ROOM LISTENING ===== */
 async function startListeningRoom(roomId){
@@ -395,17 +443,12 @@ async function startListeningRoom(roomId){
   // room state
   onValue(ref(db, `rooms/${roomId}/state`), (snap)=>{
     const data = snap.val() || {};
-    roomStateCache = data;
     if(data.day) document.getElementById('day').innerText = data.day;
     if(data.cycle) document.getElementById('cycle').innerText = data.cycle;
-    if(data.log) {
-      const lines = data.log.split('\n').filter(Boolean);
-      const latest = lines.slice(0,40).join('\n');
-      document.getElementById('log').innerText = latest;
-    }
-    // Ativar botão de iniciar jogo se for host e jogo não começou
-    if(local.isHost) {
-      document.getElementById('startGameBtn').disabled = data.gameStarted;
+    if(data.log && data.log !== document.getElementById('log').textContent) {
+      document.getElementById('log').innerHTML = data.log.split('\n').map(line => 
+        `<div style="margin-bottom:6px">${line}</div>`
+      ).join('');
     }
   });
 }
@@ -417,58 +460,50 @@ function updatePlayerCount(playersObj){
 
 function renderPlayersFromData(playersObj){
   const el = document.getElementById('playersList'); 
-  el.innerHTML='';
+  const count = Object.keys(playersObj).length;
+  
+  if(count === 0) {
+    el.innerHTML = '<div style="text-align:center; color:var(--muted); padding:20px">Nenhum jogador na sala</div>';
+    return;
+  }
+  
+  el.innerHTML = '';
   
   Object.entries(playersObj).forEach(([key, p])=>{
     const div=document.createElement('div'); 
     div.className='player';
     
-    const hostBadge = p.isHost ? '<span style="color:var(--accent); font-size:12px">[HOST]</span>' : '';
+    const hostBadge = p.isHost ? '<span style="color:var(--accent); font-size:10px; background:rgba(255,107,53,0.2); padding:2px 6px; border-radius:4px; margin-left:4px">HOST</span>' : '';
+    const youBadge = key === local.playerKey ? '<span style="color:var(--good); font-size:10px; background:rgba(59,209,122,0.2); padding:2px 6px; border-radius:4px; margin-left:4px">VOCÊ</span>' : '';
     
     div.innerHTML = `
-      <div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,#0f1620,#0b1220);display:flex;align-items:center;justify-content:center;font-weight:700">
-        ${(p.name||'P')[0]}
+      <div style="width:36px;height:36px;border-radius:6px;background:linear-gradient(180deg,#0f1620,#0b1220);display:flex;align-items:center;justify-content:center;font-weight:700; font-size:14px">
+        ${(p.name||'P')[0].toUpperCase()}
       </div>
       <div style="flex:1">
-        <strong>${p.name}</strong> ${hostBadge}
-        <div style="color:var(--muted);font-size:13px">
-          E:${p.energia||0} F:${p.fome||0} S:${p.sede||0} Fr:${p.frio||0} ${p.alive? '':'• MORTO'}
+        <div style="display:flex; align-items:center; gap:4px">
+          <strong>${p.name}</strong> ${hostBadge} ${youBadge}
+        </div>
+        <div style="color:var(--muted);font-size:11px">
+          Energia: ${p.energia||0} | Fome: ${p.fome||0} | Sede: ${p.sede||0}
         </div>
       </div>`;
     
-    if(local.playerKey === key){
-      const btns = document.createElement('div');
-      btns.innerHTML = `<button id="giveSkillBtn">Adicionar skill (Aventureiro)</button>`;
-      btns.style.display='flex'; 
-      btns.style.flexDirection='column'; 
-      btns.style.gap='6px';
-      div.appendChild(btns);
-      
-      setTimeout(()=>{ 
-        const bs=document.getElementById('giveSkillBtn'); 
-        if(bs) bs.onclick = ()=> grantSkillToLocal('Aventureiro'); 
-      }, 80);
-    }
     el.appendChild(div);
   });
-  
-  renderInventoryPanel();
-  renderGlobalStats(playersObj);
 }
 
-// [Mantenha todas as outras funções do seu código original...]
-// populateItemsGrid, populateCraftList, exploreArea, etc.
+// Botão reset local
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(confirm('Recarregar a página? Você será desconectado da sala.')){
+    location.reload();
+  }
+});
 
-/* ===== CONFIGURAÇÃO IMPORTANTE NO FIREBASE ===== */
-
-// Adicione este log inicial para debug
-appendLog('Sistema carregado. Use "Criar Nova Sala" ou "Entrar em Sala Existente".');
-appendLog('Dica: Para criar sala, digite um nome e clique em Criar.');
-appendLog('Dica: Para entrar, peça o ID da sala para o host.');
-
-// Inicializar UI
-populateItemsGrid();
-populateCraftList();
+// Inicialização
+appendLog('🔄 Sistema carregado com sucesso!');
+appendLog('💡 <strong>Para criar uma sala:</strong> Digite um nome e clique em "Criar Sala"');
+appendLog('💡 <strong>Para entrar em uma sala:</strong> Peça o ID para o host e clique em "Entrar na Sala"');
 
 // Cleanup
 window.addEventListener('beforeunload', async ()=>{
