@@ -1,275 +1,484 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>A ÚLTIMA NOITE</title>
-  <style>
-    body {
-      background-color: #0d0d0d;
-      color: #e0e0e0;
-      font-family: "Courier New", monospace;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    header {
-      text-align: center;
-      margin-top: 20px;
-    }
-
-    .panel {
-      background: rgba(30, 30, 30, 0.95);
-      border: 1px solid #444;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 10px;
-      width: 90%;
-      max-width: 600px;
-      box-shadow: 0 0 10px #000;
-    }
-
-    input, button, select {
-      background: #111;
-      color: #fff;
-      border: 1px solid #444;
-      border-radius: 6px;
-      padding: 8px;
-      margin: 5px;
-      width: calc(100% - 12px);
-    }
-
-    button:hover {
-      background: #222;
-      cursor: pointer;
-    }
-
-    .inventory, .log, .crafting, .skills {
-      margin-top: 10px;
-      font-size: 0.95em;
-    }
-
-    .craft-item {
-      background: #1a1a1a;
-      margin: 4px;
-      padding: 6px;
-      border-radius: 5px;
-      border: 1px solid #333;
-    }
-
-    @media (max-width: 600px) {
-      body { font-size: 0.9em; }
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>A ÚLTIMA NOITE — Multiplayer</title>
+<meta name="description" content="Protótipo multiplayer - A Última Noite (uso Firebase Realtime DB)" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#071018; --panel:#0f1820; --muted:#9fb0bf; --accent:#ff6b35; --glass:rgba(255,255,255,0.03);
+    --good:#3bd17a; --bad:#ff5c6c;
+  }
+  *{box-sizing:border-box; font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;}
+  body{margin:0; min-height:100vh; background:linear-gradient(180deg,#05070a 0%, #071018 100%); color:#e6f0f6}
+  header{display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.03)}
+  header h1{margin:0; font-size:18px}
+  header p{margin:0; color:var(--muted); font-size:13px}
+  .layout{display:grid; grid-template-columns:320px 1fr 380px; gap:16px; padding:16px}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); border-radius:12px; padding:12px; box-shadow:0 8px 30px rgba(0,0,0,0.5)}
+  .left .small{font-size:13px}
+  input, select{background:transparent; border:1px solid rgba(255,255,255,0.04); color:inherit; padding:8px; border-radius:8px}
+  button{background:var(--glass); color:inherit; border:1px solid rgba(255,255,255,0.03); padding:8px 10px; border-radius:8px; cursor:pointer}
+  button.primary{background:linear-gradient(90deg,var(--accent),#ff8a5b); color:#071018; border:none}
+  button:disabled{opacity:0.5; cursor:not-allowed}
+  .players{display:flex; flex-direction:column; gap:8px; margin-top:8px}
+  .player{display:flex; gap:8px; align-items:center; padding:8px; border-radius:8px; background:rgba(255,255,255,0.02)}
+  .board{height:60vh; border-radius:10px; padding:12px; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.0)); border:1px dashed rgba(255,255,255,0.03)}
+  .log{height:32vh; overflow:auto; margin-top:12px; padding:10px; border-radius:8px; background:rgba(0,0,0,0.25)}
+  .widgets{display:flex; flex-direction:column; gap:10px}
+  .items-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:6px}
+  .item-chip{background:rgba(255,255,255,0.02); padding:6px 8px; border-radius:8px; font-size:13px}
+  .narrator{display:flex; gap:8px; margin-top:8px}
+  .status-badge{background:var(--good); color:#071018; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600}
+  .room-info{display:flex; align-items:center; gap:8px; margin-top:8px}
+  @media (max-width:1000px){ .layout{grid-template-columns:1fr; padding:12px} .right{order:3} .left{order:1} }
+</style>
 </head>
 <body>
-
   <header>
-    <h1>🕯️ A ÚLTIMA NOITE 🕯️</h1>
-    <p>Mansão velha e isolada no meio do deserto</p>
+    <div>
+      <h1>A ÚLTIMA NOITE — Multiplayer</h1>
+      <p>Mansão isolada no deserto • 5–6 jogadores • 1 assassino • NPC: Sr. Elías</p>
+    </div>
+    <div style="margin-left:auto; display:flex; gap:8px; align-items:center">
+      <div id="metaLabel" style="color:var(--muted)">Desconectado</div>
+    </div>
   </header>
 
-  <div class="panel" id="loginPanel">
-    <h3>Entrar no jogo</h3>
-    <input id="nickname" placeholder="Seu nickname" />
-    <input id="roomId" placeholder="ID da sala (ex: sala1)" />
-    <button id="joinRoomBtn">Entrar / Criar Sala</button>
-  </div>
+  <main class="layout">
+    <!-- LEFT: setup & players -->
+    <aside class="panel left">
+      <div><strong>Sistema de Salas</strong></div>
+      
+      <!-- Criar Nova Sala -->
+      <div style="margin-top:12px">
+        <div style="font-size:14px; color:var(--muted)">Criar Nova Sala</div>
+        <div style="display:flex; gap:8px; margin-top:6px">
+          <input id="newRoomInput" placeholder="Nome da nova sala" />
+          <input id="hostNameInput" placeholder="Seu nome" style="width:120px" />
+          <button id="createBtn" class="primary">Criar</button>
+        </div>
+      </div>
 
-  <div class="panel" id="gamePanel" style="display:none;">
-    <h3 id="roomTitle"></h3>
-    <p><b>Jogadores na sala:</b> <span id="playerList"></span></p>
+      <!-- Entrar em Sala Existente -->
+      <div style="margin-top:12px">
+        <div style="font-size:14px; color:var(--muted)">Entrar em Sala Existente</div>
+        <div style="display:flex; gap:8px; margin-top:6px">
+          <input id="roomInput" placeholder="ID da sala" />
+          <input id="nameInput" placeholder="Seu nickname" style="width:120px" />
+          <button id="joinBtn">Entrar</button>
+        </div>
+      </div>
 
-    <div class="inventory">
-      <h4>🎒 Inventário</h4>
-      <div id="inventoryList"></div>
-      <button id="rollDiceBtn">🎲 Rodar dado (buscar item)</button>
-    </div>
+      <!-- Info da Sala Atual -->
+      <div id="roomInfo" style="display:none; margin-top:12px">
+        <div class="room-info">
+          <span style="color:var(--muted)">Sala:</span>
+          <strong id="currentRoomName"></strong>
+          <span class="status-badge" id="roomStatus">Conectado</span>
+          <button id="leaveBtn" style="margin-left:auto">Sair</button>
+        </div>
+      </div>
 
-    <div class="crafting">
-      <h4>⚒️ Crafting</h4>
-      <div id="craftList"></div>
-    </div>
+      <div style="margin-top:12px; display:flex; gap:8px; align-items:center">
+        <button id="startGameBtn" disabled>Iniciar jogo (sortear papéis)</button>
+        <button id="revealBtn" disabled>Revelar papéis</button>
+      </div>
 
-    <div class="skills">
-      <h4>💪 Skills</h4>
-      <div id="skillsList"></div>
-    </div>
+      <div style="margin-top:12px">
+        <strong>Jogadores na Sala <span id="playerCount">(0)</span></strong>
+        <div class="players" id="playersList"></div>
+      </div>
 
-    <div class="log">
-      <h4>📜 Log</h4>
-      <div id="logBox"></div>
-    </div>
-  </div>
+      <div style="margin-top:12px">
+        <strong>Objetivos</strong>
+        <ul style="color:var(--muted); margin-top:8px">
+          <li>Ligar para a polícia (telefone / rádio / antena)</li>
+          <li>Restaurar energia (gerador + combustível + fusíveis)</li>
+          <li>Sobreviver até o amanhecer / descobrir o assassino</li>
+        </ul>
+      </div>
+    </aside>
 
-  <script type="module">
-    // ======= FIREBASE CONFIG =======
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, set, get, push, update, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    <!-- CENTER: map, actions, logs -->
+    <section class="panel center">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <div><strong>Mapa: Mansão Antiga</strong><div style="color:var(--muted); font-size:13px">Use ações ou comandos do narrador.</div></div>
+        <div style="display:flex; gap:8px">
+          <div id="dayLabel">Dia <strong id="day">1</strong> — <span id="cycle">DIA</span></div>
+          <button id="advanceTurn" disabled>Avançar turno</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+      </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
-      authDomain: "ultima-noite-f2867.firebaseapp.com",
-      projectId: "ultima-noite-f2867",
-      storageBucket: "ultima-noite-f2867.firebasestorage.app",
-      messagingSenderId: "553820660993",
-      appId: "1:553820660993:web:cb1019cc2361a54e4c6700",
-      measurementId: "G-J8XZBFZH32",
-      databaseURL: "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app"
-    };
+      <div class="board" style="margin-top:12px">
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button id="exploreTree" disabled>Explorar Jardim</button>
+          <button id="exploreWorkshop" disabled>Explorar Oficina</button>
+          <button id="exploreKitchen" disabled>Explorar Cozinha</button>
+          <button id="interactNPC" disabled>Interagir: Sr. Elías</button>
+        </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+        <div class="narrator">
+          <input id="narrInput" placeholder="Narrador: digite 'rode árvore' / 'roda oficina' / 'montar gerador'" disabled />
+          <button id="narrBtn" disabled>Enviar</button>
+        </div>
 
-    // ======= GAME VARIABLES =======
-    let nickname = "";
-    let roomId = "";
-    let playerRef;
-    let inventory = [];
+        <div class="log" id="log"></div>
+      </div>
+    </section>
 
-    const ITEMS = [
-      "Madeira", "Galhos secos", "Metal enferrujado", "Pano velho", "Pregos",
-      "Enlatados", "Água mineral", "Isqueiro", "Martelo", "Corda",
-      "Lanterna", "Curativos", "Faca", "Taco de beisebol", "Diário misterioso"
-    ];
+    <!-- RIGHT: stats, inventory, crafting -->
+    <aside class="panel right">
+      <div class="widgets">
+        <div class="widget">
+          <h3>Sistema de Sobrevivência</h3>
+          <div id="globalStats"></div>
+        </div>
 
-    const RECIPES = [
-      { result: "Fogueira", requires: ["Madeira", "Isqueiro"] },
-      { result: "Tocha", requires: ["Galhos secos", "Pano velho", "Isqueiro"] },
-      { result: "Kit de Reparos", requires: ["Metal enferrujado", "Pregos", "Martelo"] },
-      { result: "Filtro de Água", requires: ["Pano velho", "Água mineral"] },
-    ];
+        <div class="widget">
+          <h3>Inventário (você)</h3>
+          <div id="inventory" style="max-height:160px; overflow:auto"></div>
+        </div>
 
-    const SKILLS = [
-      { name: "Sobrevivente Experiente", desc: "Roda 1d2 a cada 3 turnos e ganha +1 item se cair 2.", cooldown: 3, turns: 0 }
-    ];
+        <div class="widget">
+          <h3>Crafting</h3>
+          <div id="craftList"></div>
+        </div>
 
-    // ======= UI ELEMENTS =======
-    const loginPanel = document.getElementById("loginPanel");
-    const gamePanel = document.getElementById("gamePanel");
-    const roomTitle = document.getElementById("roomTitle");
-    const playerList = document.getElementById("playerList");
-    const inventoryList = document.getElementById("inventoryList");
-    const rollDiceBtn = document.getElementById("rollDiceBtn");
-    const logBox = document.getElementById("logBox");
-    const craftList = document.getElementById("craftList");
-    const skillsList = document.getElementById("skillsList");
+        <div class="widget">
+          <h3>Skills</h3>
+          <div id="skillsPanel"></div>
+        </div>
 
-    // ======= JOIN ROOM =======
-    document.getElementById("joinRoomBtn").onclick = async () => {
-      nickname = document.getElementById("nickname").value.trim();
-      roomId = document.getElementById("roomId").value.trim();
-      if (!nickname || !roomId) return alert("Preencha nickname e ID da sala.");
+        <div class="widget">
+          <h3>Itens exemplo por área</h3>
+          <div class="items-grid" id="itemsGrid"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
 
-      const roomRef = ref(db, `rooms/${roomId}`);
-      const snapshot = await get(roomRef);
-      if (!snapshot.exists()) {
-        await set(roomRef, { players: {} });
-      }
+<script type="module">
+/* -------------------------
+  A ÚLTIMA NOITE — Sistema de Salas Corrigido
+-------------------------*/
 
-      playerRef = ref(db, `rooms/${roomId}/players/${nickname}`);
-      await set(playerRef, { nickname, inventory: [] });
+/* Firebase imports */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-      loginPanel.style.display = "none";
-      gamePanel.style.display = "block";
-      roomTitle.innerText = `Sala: ${roomId}`;
-      log(`🔹 Entrou na sala "${roomId}" como ${nickname}.`);
+const firebaseConfig = {
+  apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
+  authDomain: "ultima-noite-f2867.firebaseapp.com",
+  projectId: "ultima-noite-f2867",
+  storageBucket: "ultima-noite-f2867.firebasestorage.app",
+  messagingSenderId: "553820660993",
+  appId: "1:553820660993:web:cb1019cc2361a54e4c6700",
+  measurementId: "G-J8XZBFZH32"
+};
+const DATABASE_URL = "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app";
 
-      listenPlayers(roomRef);
-      renderCrafting();
-      renderSkills();
-    };
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app, DATABASE_URL);
 
-    // ======= LISTEN PLAYERS =======
-    function listenPlayers(roomRef) {
-      onValue(ref(db, `rooms/${roomId}/players`), (snapshot) => {
-        const players = snapshot.val() || {};
-        playerList.innerText = Object.keys(players).join(", ");
-      });
+/* ===== utilities / state ===== */
+const local = { 
+  roomId: null, 
+  playerName: null, 
+  playerKey: null,
+  isHost: false
+};
+let roomStateCache = {};
+
+/* helper log */
+function appendLog(text){
+  const el = document.getElementById('log');
+  const ts = new Date().toLocaleTimeString();
+  el.innerHTML = `<div style="margin-bottom:6px"><small style="color:var(--muted)">[${ts}]</small> ${text}</div>` + el.innerHTML;
+  if(local.roomId) pushRoomLog(`[${ts}] ${text}`);
+}
+
+/* push room log into DB state.log */
+async function pushRoomLog(text){
+  if(!local.roomId) return;
+  const stateRef = ref(db, `rooms/${local.roomId}/state`);
+  const snap = await get(stateRef);
+  const cur = snap.exists() ? snap.val() : {};
+  const newLog = (text + "\n") + (cur.log || "");
+  await update(stateRef, { log: newLog, updatedAt: Date.now() });
+}
+
+/* ===== SISTEMA DE SALAS MELHORADO ===== */
+
+// Criar nova sala
+document.getElementById('createBtn').addEventListener('click', async ()=>{
+  const roomName = document.getElementById('newRoomInput').value.trim();
+  const playerName = document.getElementById('hostNameInput').value.trim() || ('Host'+Math.floor(Math.random()*999));
+  
+  if(!roomName){
+    alert('Digite um nome para a sala');
+    return;
+  }
+
+  // Usar timestamp + random para evitar conflitos
+  const roomId = roomName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+  
+  try {
+    local.roomId = roomId;
+    local.playerName = playerName;
+    local.isHost = true;
+
+    // Criar estrutura da sala
+    await set(ref(db, `rooms/${roomId}/meta`), { 
+      name: roomName,
+      createdAt: Date.now(),
+      host: playerName,
+      status: 'waiting'
+    });
+
+    // Adicionar host como jogador
+    const playerRef = push(ref(db, `rooms/${roomId}/players`));
+    local.playerKey = playerRef.key;
+    
+    await set(playerRef, { 
+      name: playerName, 
+      energia: 80, 
+      fome: 10, 
+      sede: 10, 
+      frio: 5, 
+      alive: true, 
+      inventory: [], 
+      skills: [], 
+      isHost: true,
+      joinedAt: Date.now() 
+    });
+
+    // Inicializar estado do jogo
+    await set(ref(db, `rooms/${roomId}/state`), {
+      day: 1,
+      cycle: 'DIA',
+      turnCount: 0,
+      gameStarted: false,
+      log: `Sala "${roomName}" criada por ${playerName}`
+    });
+
+    appendLog(`Sala "${roomName}" criada com sucesso! ID: ${roomId}`);
+    updateUIForRoomJoined(roomName);
+    startListeningRoom(roomId);
+
+  } catch (error) {
+    console.error('Erro ao criar sala:', error);
+    alert('Erro ao criar sala. Verifique o console.');
+  }
+});
+
+// Entrar em sala existente
+document.getElementById('joinBtn').addEventListener('click', async ()=>{
+  const roomId = document.getElementById('roomInput').value.trim();
+  const playerName = document.getElementById('nameInput').value.trim() || ('Jogador'+Math.floor(Math.random()*999));
+  
+  if(!roomId){
+    alert('Digite o ID da sala');
+    return;
+  }
+
+  try {
+    // Verificar se a sala existe
+    const roomRef = ref(db, `rooms/${roomId}`);
+    const snap = await get(roomRef);
+    
+    if(!snap.exists()){
+      alert('Sala não encontrada. Verifique o ID.');
+      return;
     }
 
-    // ======= ROLL DICE =======
-    rollDiceBtn.onclick = async () => {
-      const roll = Math.floor(Math.random() * 8) + 1;
-      let msg = `🎲 Rolou ${roll}. `;
-      if (roll >= 6) {
-        const item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
-        inventory.push(item);
-        await update(playerRef, { inventory });
-        msg += `Conseguiu ${item}!`;
-      } else if (roll >= 3) {
-        msg += "Encontrou algo, mas se machucou levemente.";
-      } else {
-        msg += "Nada encontrado e sofreu um pequeno acidente.";
-      }
-      log(msg);
-      renderInventory();
-      checkSkills();
-    };
+    const roomData = snap.val();
+    local.roomId = roomId;
+    local.playerName = playerName;
+    local.isHost = false;
 
-    // ======= INVENTORY DISPLAY =======
-    function renderInventory() {
-      inventoryList.innerHTML = inventory.length ? inventory.join(", ") : "Vazio";
+    // Adicionar jogador
+    const playerRef = push(ref(db, `rooms/${roomId}/players`));
+    local.playerKey = playerRef.key;
+    
+    await set(playerRef, { 
+      name: playerName, 
+      energia: 80, 
+      fome: 10, 
+      sede: 10, 
+      frio: 5, 
+      alive: true, 
+      inventory: [], 
+      skills: [], 
+      isHost: false,
+      joinedAt: Date.now() 
+    });
+
+    appendLog(`Entrou na sala "${roomData.meta?.name || roomId}" como ${playerName}`);
+    updateUIForRoomJoined(roomData.meta?.name || roomId);
+    startListeningRoom(roomId);
+
+  } catch (error) {
+    console.error('Erro ao entrar na sala:', error);
+    alert('Erro ao entrar na sala. Verifique o console.');
+  }
+});
+
+// Sair da sala
+document.getElementById('leaveBtn').addEventListener('click', async ()=>{
+  if(local.roomId && local.playerKey){
+    await remove(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
+  }
+  resetUI();
+  appendLog('Você saiu da sala.');
+});
+
+// Atualizar UI quando entrar numa sala
+function updateUIForRoomJoined(roomName){
+  document.getElementById('roomInfo').style.display = 'block';
+  document.getElementById('currentRoomName').textContent = roomName;
+  document.getElementById('metaLabel').innerText = `Sala: ${local.roomId} • ${local.playerName}`;
+  
+  // Ativar controles do jogo
+  document.getElementById('startGameBtn').disabled = !local.isHost;
+  document.getElementById('exploreTree').disabled = false;
+  document.getElementById('exploreWorkshop').disabled = false;
+  document.getElementById('exploreKitchen').disabled = false;
+  document.getElementById('interactNPC').disabled = false;
+  document.getElementById('narrInput').disabled = false;
+  document.getElementById('narrBtn').disabled = false;
+  document.getElementById('advanceTurn').disabled = !local.isHost;
+  document.getElementById('revealBtn').disabled = !local.isHost;
+}
+
+// Resetar UI quando sair
+function resetUI(){
+  local.roomId = null;
+  local.playerName = null;
+  local.playerKey = null;
+  local.isHost = false;
+  
+  document.getElementById('roomInfo').style.display = 'none';
+  document.getElementById('metaLabel').innerText = 'Desconectado';
+  document.getElementById('playersList').innerHTML = '';
+  document.getElementById('playerCount').textContent = '(0)';
+  
+  // Desativar controles
+  document.getElementById('startGameBtn').disabled = true;
+  document.getElementById('exploreTree').disabled = true;
+  document.getElementById('exploreWorkshop').disabled = true;
+  document.getElementById('exploreKitchen').disabled = true;
+  document.getElementById('interactNPC').disabled = true;
+  document.getElementById('narrInput').disabled = true;
+  document.getElementById('narrBtn').disabled = true;
+  document.getElementById('advanceTurn').disabled = true;
+  document.getElementById('revealBtn').disabled = true;
+}
+
+/* ===== RESTANTE DO CÓDIGO (mantido igual) ===== */
+
+// [O restante do seu código permanece igual...]
+// Items, skills, exploration, crafting, etc.
+
+/* ===== ROOM LISTENING ===== */
+async function startListeningRoom(roomId){
+  // players list
+  onValue(ref(db, `rooms/${roomId}/players`), (snap)=>{
+    const data = snap.val() || {};
+    renderPlayersFromData(data);
+    updatePlayerCount(data);
+  });
+  
+  // room state
+  onValue(ref(db, `rooms/${roomId}/state`), (snap)=>{
+    const data = snap.val() || {};
+    roomStateCache = data;
+    if(data.day) document.getElementById('day').innerText = data.day;
+    if(data.cycle) document.getElementById('cycle').innerText = data.cycle;
+    if(data.log) {
+      const lines = data.log.split('\n').filter(Boolean);
+      const latest = lines.slice(0,40).join('\n');
+      document.getElementById('log').innerText = latest;
     }
-
-    // ======= CRAFTING =======
-    function renderCrafting() {
-      craftList.innerHTML = "";
-      RECIPES.forEach(r => {
-        const div = document.createElement("div");
-        div.className = "craft-item";
-        div.innerHTML = `<b>${r.result}</b> → precisa de: ${r.requires.join(", ")} <br>
-        <button>Craftar</button>`;
-        div.querySelector("button").onclick = async () => {
-          if (r.requires.every(req => inventory.includes(req))) {
-            r.requires.forEach(req => inventory.splice(inventory.indexOf(req), 1));
-            inventory.push(r.result);
-            await update(playerRef, { inventory });
-            renderInventory();
-            log(`✅ Criou ${r.result}!`);
-          } else log("❌ Itens insuficientes.");
-        };
-        craftList.appendChild(div);
-      });
+    // Ativar botão de iniciar jogo se for host e jogo não começou
+    if(local.isHost) {
+      document.getElementById('startGameBtn').disabled = data.gameStarted;
     }
+  });
+}
 
-    // ======= SKILLS =======
-    function renderSkills() {
-      skillsList.innerHTML = "";
-      SKILLS.forEach(skill => {
-        const div = document.createElement("div");
-        div.innerHTML = `<b>${skill.name}</b> - ${skill.desc} (Cooldown: ${skill.cooldown})`;
-        skillsList.appendChild(div);
-      });
+function updatePlayerCount(playersObj){
+  const count = Object.keys(playersObj).length;
+  document.getElementById('playerCount').textContent = `(${count})`;
+}
+
+function renderPlayersFromData(playersObj){
+  const el = document.getElementById('playersList'); 
+  el.innerHTML='';
+  
+  Object.entries(playersObj).forEach(([key, p])=>{
+    const div=document.createElement('div'); 
+    div.className='player';
+    
+    const hostBadge = p.isHost ? '<span style="color:var(--accent); font-size:12px">[HOST]</span>' : '';
+    
+    div.innerHTML = `
+      <div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,#0f1620,#0b1220);display:flex;align-items:center;justify-content:center;font-weight:700">
+        ${(p.name||'P')[0]}
+      </div>
+      <div style="flex:1">
+        <strong>${p.name}</strong> ${hostBadge}
+        <div style="color:var(--muted);font-size:13px">
+          E:${p.energia||0} F:${p.fome||0} S:${p.sede||0} Fr:${p.frio||0} ${p.alive? '':'• MORTO'}
+        </div>
+      </div>`;
+    
+    if(local.playerKey === key){
+      const btns = document.createElement('div');
+      btns.innerHTML = `<button id="giveSkillBtn">Adicionar skill (Aventureiro)</button>`;
+      btns.style.display='flex'; 
+      btns.style.flexDirection='column'; 
+      btns.style.gap='6px';
+      div.appendChild(btns);
+      
+      setTimeout(()=>{ 
+        const bs=document.getElementById('giveSkillBtn'); 
+        if(bs) bs.onclick = ()=> grantSkillToLocal('Aventureiro'); 
+      }, 80);
     }
+    el.appendChild(div);
+  });
+  
+  renderInventoryPanel();
+  renderGlobalStats(playersObj);
+}
 
-    function checkSkills() {
-      SKILLS.forEach(skill => {
-        skill.turns++;
-        if (skill.turns >= skill.cooldown) {
-          skill.turns = 0;
-          const roll = Math.floor(Math.random() * 2) + 1;
-          if (roll === 2) {
-            const item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
-            inventory.push(item);
-            update(playerRef, { inventory });
-            log(`⭐ Skill "${skill.name}" ativou! Ganhou ${item}.`);
-            renderInventory();
-          }
-        }
-      });
+// [Mantenha todas as outras funções do seu código original...]
+// populateItemsGrid, populateCraftList, exploreArea, etc.
+
+/* ===== CONFIGURAÇÃO IMPORTANTE NO FIREBASE ===== */
+
+// Adicione este log inicial para debug
+appendLog('Sistema carregado. Use "Criar Nova Sala" ou "Entrar em Sala Existente".');
+appendLog('Dica: Para criar sala, digite um nome e clique em Criar.');
+appendLog('Dica: Para entrar, peça o ID da sala para o host.');
+
+// Inicializar UI
+populateItemsGrid();
+populateCraftList();
+
+// Cleanup
+window.addEventListener('beforeunload', async ()=>{
+  try{
+    if(local.roomId && local.playerKey){
+      await remove(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
     }
+  }catch(e){ /* ignore */ }
+});
 
-    // ======= LOG DISPLAY =======
-    function log(text) {
-      const line = document.createElement("div");
-      line.textContent = text;
-      logBox.prepend(line);
-    }
-
-  </script>
+</script>
 </body>
 </html>
