@@ -459,7 +459,7 @@
     </div>
 
     <script type="module">
-        // Configuração simplificada do Firebase
+        // Configuração CORRETA do Firebase com URL específica
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
@@ -474,9 +474,12 @@
             measurementId: "G-J8XZBFZH32"
         };
 
-        // Inicializar Firebase
+        // Inicializar Firebase com configuração correta
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+
+        console.log('🔥 Firebase configurado com sucesso!');
+        console.log('📡 Conectado ao database:', firebaseConfig.databaseURL);
 
         // Estado do jogo
         const gameState = {
@@ -488,7 +491,7 @@
 
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔧 Iniciando sistema...');
+            console.log('🔧 DOM carregado - Iniciando sistema...');
             
             setTimeout(function() {
                 console.log('🎮 Mostrando menu principal');
@@ -542,7 +545,7 @@
                 console.log('🚀 Iniciando criação da sala...');
                 
                 // Gerar ID único para a sala
-                const roomId = generateRoomId();
+                const roomId = roomName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString().slice(-4);
                 console.log('📋 ID da sala:', roomId);
                 
                 gameState.roomId = roomId;
@@ -561,8 +564,8 @@
 
                 // 2. Adicionar host como jogador
                 console.log('👤 Adicionando host...');
-                const playerRef = push(ref(db, `rooms/${roomId}/players`));
-                gameState.playerId = playerRef.key;
+                const playerRef = ref(db, `rooms/${roomId}/players/host`);
+                gameState.playerId = 'host';
                 
                 await set(playerRef, {
                     name: hostName,
@@ -627,7 +630,7 @@
                 const currentPlayers = Object.keys(roomData.players || {}).length;
 
                 // Verificar se sala está cheia
-                if (currentPlayers >= roomData.meta.maxPlayers) {
+                if (currentPlayers >= 6) {
                     gameState.isSpectator = true;
                     addLog('👁️ Sala cheia! Entrando como espectador...');
                 }
@@ -636,9 +639,12 @@
 
                 console.log('👤 Adicionando jogador...');
                 
+                // Gerar ID único para o jogador
+                const playerId = 'player_' + Date.now();
+                gameState.playerId = playerId;
+                
                 // Adicionar jogador
-                const playerRef = push(ref(db, `rooms/${roomId}/players`));
-                gameState.playerId = playerRef.key;
+                const playerRef = ref(db, `rooms/${roomId}/players/${playerId}`);
                 
                 await set(playerRef, {
                     name: playerName,
@@ -687,12 +693,14 @@
             // Escutar jogadores
             onValue(ref(db, `rooms/${gameState.roomId}/players`), (snapshot) => {
                 const players = snapshot.val() || {};
+                console.log('👥 Jogadores atualizados:', players);
                 updatePlayersList(players);
             });
 
             // Escutar estado do jogo
             onValue(ref(db, `rooms/${gameState.roomId}/game`), (snapshot) => {
                 const game = snapshot.val() || {};
+                console.log('🎮 Estado do jogo atualizado:', game);
                 updateGameState(game);
             });
         }
@@ -720,8 +728,8 @@
                 list.appendChild(playerElement);
             });
 
-            document.getElementById('player-count').textContent = 
-                `Jogadores: ${Object.keys(players).length}/6`;
+            const playerCount = Object.keys(players).length;
+            document.getElementById('player-count').textContent = `Jogadores: ${playerCount}/6`;
         }
 
         function updateGameState(game) {
@@ -787,10 +795,6 @@
         }
 
         // FUNÇÕES AUXILIARES
-        function generateRoomId() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
         function getRandomWeather() {
             const events = [
                 "🌞 Dia Ensolarado - Calor Intenso",
