@@ -31,7 +31,7 @@
             overflow-x: hidden;
         }
 
-        /* Animação de entrada */
+        /* Animação de entrada CORRIGIDA */
         #splash-screen {
             position: fixed;
             top: 0;
@@ -44,48 +44,58 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            animation: fadeOut 1s ease-in-out 3s forwards;
+        }
+
+        .title-container {
+            text-align: center;
+            padding: 20px;
         }
 
         .title-animation {
-            font-size: 4rem;
+            font-size: clamp(2.5rem, 8vw, 4rem);
             font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 8px;
+            letter-spacing: clamp(4px, 2vw, 8px);
             background: linear-gradient(45deg, var(--accent), var(--danger));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            animation: glitch 2s infinite, pulse 2s infinite;
             text-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            animation: fadeInScale 2s ease-in-out;
         }
 
         .subtitle {
-            margin-top: 1rem;
             color: var(--muted);
-            font-size: 1.2rem;
-            animation: fadeIn 2s ease-in-out;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            animation: fadeIn 2s ease-in-out 1s both;
         }
 
-        @keyframes glitch {
-            0%, 100% { transform: translate(0); }
-            20% { transform: translate(-2px, 2px); }
-            40% { transform: translate(-2px, -2px); }
-            60% { transform: translate(2px, 2px); }
-            80% { transform: translate(2px, -2px); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
+        @keyframes fadeInScale {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from { 
+                opacity: 0; 
+            }
+            to { 
+                opacity: 1; 
+            }
         }
 
         @keyframes fadeOut {
-            to { opacity: 0; visibility: hidden; }
+            to { 
+                opacity: 0; 
+                visibility: hidden;
+            }
         }
 
         /* Layout Principal */
@@ -129,10 +139,12 @@
             background: var(--panel);
             border-radius: 15px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .game-title {
-            font-size: 1.8rem;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
             font-weight: 700;
             color: var(--accent);
         }
@@ -141,6 +153,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         /* Sistema de Salas */
@@ -236,10 +249,12 @@
             justify-content: center;
             font-weight: bold;
             font-size: 18px;
+            flex-shrink: 0;
         }
 
         .player-info {
             flex: 1;
+            min-width: 0;
         }
 
         .player-name {
@@ -247,6 +262,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .player-role {
@@ -258,6 +274,7 @@
         .player-actions {
             display: flex;
             gap: 5px;
+            flex-shrink: 0;
         }
 
         .action-btn {
@@ -296,6 +313,7 @@
         .dice-btn {
             background: var(--glass);
             border: 2px solid rgba(255, 255, 255, 0.2);
+            height: 60px;
         }
 
         .dice-btn:hover {
@@ -338,6 +356,7 @@
             border-radius: 6px;
             background: rgba(255, 255, 255, 0.05);
             animation: slideIn 0.3s ease-out;
+            word-break: break-word;
         }
 
         @keyframes slideIn {
@@ -394,37 +413,115 @@
             margin-top: 10px;
         }
 
-        /* Responsividade */
-        @media (max-width: 1024px) {
+        /* RESPONSIVIDADE MELHORADA */
+        @media (max-width: 1200px) {
             .container {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto;
+                grid-template-columns: 280px 1fr;
+                grid-template-rows: auto auto auto;
             }
             
-            .header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
+            .container > aside:last-child {
+                grid-column: 1 / -1;
+                grid-row: 3;
             }
         }
 
         @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                padding: 10px;
+                gap: 15px;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .room-info {
+                justify-content: center;
+            }
+            
             .dice-roller {
                 grid-template-columns: repeat(3, 1fr);
             }
             
             .action-buttons {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr;
+            }
+            
+            .action-btn-large {
+                height: 70px;
             }
             
             .inventory-grid {
                 grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .player-card {
+                flex-wrap: wrap;
+            }
+            
+            .player-actions {
+                width: 100%;
+                justify-content: center;
+                margin-top: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 8px;
+                gap: 10px;
+            }
+            
+            .panel {
+                padding: 15px;
+            }
+            
+            .dice-roller {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .inventory-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .game-log {
+                max-height: 200px;
+            }
+            
+            input, button {
+                padding: 10px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .title-animation {
+                font-size: 2rem;
+                letter-spacing: 2px;
+            }
+            
+            .dice-roller {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .inventory-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
         /* Animações extras */
         .pulse {
             animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
         }
 
         .shake {
@@ -447,14 +544,34 @@
             50% { transform: rotate(180deg) scale(1.2); opacity: 1; }
             100% { transform: rotate(360deg) scale(1); opacity: 1; }
         }
+
+        /* Loading entre tela de entrada e menu */
+        .loading-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: 999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeOut 0.5s ease-in-out 0.5s forwards;
+        }
     </style>
 </head>
 <body>
-    <!-- Tela de Abertura -->
+    <!-- Tela de Abertura CORRIGIDA -->
     <div id="splash-screen">
-        <div class="title-animation">ULTIMA NOITE</div>
-        <div class="subtitle">O RPG de Sobrevivência no Deserto</div>
+        <div class="title-container">
+            <div class="title-animation">ULTIMA NOITE</div>
+            <div class="subtitle">O RPG de Sobrevivência no Deserto</div>
+        </div>
     </div>
+
+    <!-- Loading Transition -->
+    <div class="loading-transition" id="loading-transition" style="display: none;"></div>
 
     <!-- Interface Principal -->
     <div class="container" id="main-container">
@@ -576,71 +693,4 @@
             measurementId: "G-J8XZBFZH32"
         };
 
-        const DATABASE_URL = "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app, DATABASE_URL);
-
-        // Estado do jogo
-        const gameState = {
-            roomId: null,
-            playerId: null,
-            isHost: false,
-            isSpectator: false,
-            currentRole: null
-        };
-
-        // Itens do jogo com raridade
-        const gameItems = {
-            comum: [
-                { name: "Madeira", emoji: "🪵", chance: 30 },
-                { name: "Galho", emoji: "🌿", chance: 40 },
-                { name: "Pedra", emoji: "🪨", chance: 35 },
-                { name: "Água Suja", emoji: "💧", chance: 25 }
-            ],
-            incomum: [
-                { name: "Faca", emoji: "🔪", chance: 15 },
-                { name: "Comida Enlatada", emoji: "🥫", chance: 12 },
-                { name: "Corda", emoji: "🪢", chance: 10 },
-                { name: "Isqueiro", emoji: "🔥", chance: 8 }
-            ],
-            raro: [
-                { name: "Kit Médico", emoji: "💊", chance: 5 },
-                { name: "Rádio", emoji: "📻", chance: 3 },
-                { name: "Arma", emoji: "🔫", chance: 2 },
-                { name: "Mapa", emoji: "🗺️", chance: 4 }
-            ]
-        };
-
-        // Eventos climáticos
-        const weatherEvents = [
-            { name: "🌞 Dia Ensolarado", effect: "Calor intenso - +1 de sede por turno" },
-            { name: "🌧️ Chuva Forte", effect: "Água disponível + risco de hipotermia" },
-            { name: "🌬️ Ventania", effect: "Dificuldade em acender fogueiras" },
-            { name: "🌫️ Névoa Espessa", effect: "Visibilidade reduzida - penalidade em exploração" },
-            { name: "🌡️ Calor Extremo", effect: "Desidratação acelerada" },
-            { name: "❄️ Frio Noturno", effect: "Risco de hipotermia à noite" }
-        ];
-
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                document.getElementById('splash-screen').style.display = 'none';
-                document.getElementById('main-container').style.display = 'grid';
-            }, 4000);
-
-            initializeEventListeners();
-            startRoomCleanup();
-        });
-
-        function initializeEventListeners() {
-            // Sistema de salas
-            document.getElementById('create-room-btn').addEventListener('click', createRoom);
-            document.getElementById('join-room-btn').addEventListener('click', joinRoom);
-            document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
-
-            // Dados
-            document.querySelectorAll('.dice-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const dice = e.target.dataset.dice;
-                    if (dice) rollDice(parse
+        const DATABASE_URL = "https
