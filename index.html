@@ -225,21 +225,6 @@
             color: var(--muted);
         }
 
-        .player-actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .action-btn {
-            width: 32px;
-            height: 32px;
-            padding: 0;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
         /* Área Principal */
         .main-area {
             display: flex;
@@ -317,7 +302,6 @@
             border-radius: 8px;
             padding: 10px;
             text-align: center;
-            cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
@@ -368,15 +352,6 @@
             }
             .inventory-grid {
                 grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .dice-roller {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .inventory-grid {
-                grid-template-columns: repeat(3, 1fr);
             }
         }
     </style>
@@ -484,12 +459,14 @@
     </div>
 
     <script type="module">
+        // Configuração simplificada do Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
             authDomain: "ultima-noite-f2867.firebaseapp.com",
+            databaseURL: "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "ultima-noite-f2867",
             storageBucket: "ultima-noite-f2867.firebasestorage.app",
             messagingSenderId: "553820660993",
@@ -497,52 +474,24 @@
             measurementId: "G-J8XZBFZH32"
         };
 
+        // Inicializar Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        // Estado do jogo
         const gameState = {
             roomId: null,
             playerId: null,
             isHost: false,
-            isSpectator: false,
-            currentRole: null
+            isSpectator: false
         };
 
-        const gameItems = {
-            comum: [
-                { name: "Madeira", emoji: "🪵", chance: 30 },
-                { name: "Galho", emoji: "🌿", chance: 40 },
-                { name: "Pedra", emoji: "🪨", chance: 35 },
-                { name: "Água Suja", emoji: "💧", chance: 25 }
-            ],
-            incomum: [
-                { name: "Faca", emoji: "🔪", chance: 15 },
-                { name: "Comida Enlatada", emoji: "🥫", chance: 12 },
-                { name: "Corda", emoji: "🪢", chance: 10 },
-                { name: "Isqueiro", emoji: "🔥", chance: 8 }
-            ],
-            raro: [
-                { name: "Kit Médico", emoji: "💊", chance: 5 },
-                { name: "Rádio", emoji: "📻", chance: 3 },
-                { name: "Arma", emoji: "🔫", chance: 2 }
-            ]
-        };
-
-        const weatherEvents = [
-            "🌞 Dia Ensolarado - Calor Intenso",
-            "🌧️ Chuva Forte - Risco de Enchentes", 
-            "🌬️ Ventania - Dificuldade em Explorar",
-            "🌫️ Névoa Espessa - Visibilidade Reduzida",
-            "🌡️ Calor Extremo - Desidratação",
-            "❄️ Frio Noturno - Hipotermia"
-        ];
-
-        // INICIALIZAÇÃO
+        // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Página carregada - Iniciando em 3 segundos...');
+            console.log('🔧 Iniciando sistema...');
             
             setTimeout(function() {
-                console.log('Mostrando menu...');
+                console.log('🎮 Mostrando menu principal');
                 document.getElementById('splash-screen').style.display = 'none';
                 document.getElementById('main-container').style.display = 'grid';
                 initializeEventListeners();
@@ -550,11 +499,14 @@
         });
 
         function initializeEventListeners() {
-            // CORREÇÃO: Adicionar event listeners corretamente
+            console.log('🔗 Conectando botões...');
+            
+            // Sistema de salas
             document.getElementById('create-room-btn').addEventListener('click', createRoom);
             document.getElementById('join-room-btn').addEventListener('click', joinRoom);
             document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
 
+            // Dados
             document.querySelectorAll('.dice-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const dice = e.target.dataset.dice;
@@ -562,34 +514,42 @@
                 });
             });
 
-            // CORREÇÃO: Mudado para explore-btn
+            // Ações
             document.getElementById('explore-btn').addEventListener('click', explore);
             document.getElementById('search-food').addEventListener('click', searchFood);
             document.getElementById('chop-tree').addEventListener('click', chopTree);
+
+            // Controles do host
             document.getElementById('assign-roles-btn').addEventListener('click', assignRoles);
             document.getElementById('next-turn-btn').addEventListener('click', nextTurn);
+
+            console.log('✅ Todos os botões conectados!');
         }
 
+        // FUNÇÃO PRINCIPAL - CRIAR SALA (CORRIGIDA)
         async function createRoom() {
-            console.log('Tentando criar sala...');
+            console.log('🎯 Botão Criar Sala clicado!');
             
-            const roomName = document.getElementById('new-room-name').value;
-            const hostName = document.getElementById('host-name').value;
+            const roomName = document.getElementById('new-room-name').value.trim();
+            const hostName = document.getElementById('host-name').value.trim();
 
             if (!roomName || !hostName) {
-                addLog('❌ Preencha todos os campos!');
+                addLog('❌ Preencha nome da sala e seu nome!');
                 return;
             }
 
-            const roomId = generateRoomId();
-            
             try {
+                console.log('🚀 Iniciando criação da sala...');
+                
+                // Gerar ID único para a sala
+                const roomId = generateRoomId();
+                console.log('📋 ID da sala:', roomId);
+                
                 gameState.roomId = roomId;
                 gameState.isHost = true;
 
-                console.log('Criando sala no Firebase...');
-
-                // Criar estrutura da sala
+                // 1. Criar metadados da sala
+                console.log('📝 Criando metadados...');
                 await set(ref(db, `rooms/${roomId}/meta`), {
                     name: roomName,
                     host: hostName,
@@ -599,7 +559,8 @@
                     gameStarted: false
                 });
 
-                // Adicionar host como jogador
+                // 2. Adicionar host como jogador
+                console.log('👤 Adicionando host...');
                 const playerRef = push(ref(db, `rooms/${roomId}/players`));
                 gameState.playerId = playerRef.key;
                 
@@ -612,39 +573,46 @@
                     joinedAt: Date.now()
                 });
 
-                // Estado do jogo
+                // 3. Criar estado inicial do jogo
+                console.log('🎮 Configurando jogo...');
                 await set(ref(db, `rooms/${roomId}/game`), {
                     turn: 1,
                     weather: getRandomWeather(),
                     phase: 'day',
-                    log: [`Sala "${roomName}" criada por ${hostName}`]
+                    log: []
                 });
 
+                // 4. Atualizar UI
+                console.log('🎨 Atualizando interface...');
                 updateUIForRoom();
                 addLog(`✅ Sala "${roomName}" criada com sucesso!`);
-                addLog(`📋 ID da sala: ${roomId}`);
+                addLog(`🔑 ID da sala: ${roomId}`);
                 addLog(`👑 Você é o host da sala`);
+
+                // 5. Iniciar escuta da sala
                 startListeningToRoom();
 
+                console.log('🎉 Sala criada com sucesso!');
+
             } catch (error) {
-                console.error('Erro ao criar sala:', error);
-                addLog('❌ Erro ao criar sala. Verifique o console.');
+                console.error('💥 ERRO ao criar sala:', error);
+                addLog('❌ Erro ao criar sala. Verifique o console (F12)');
             }
         }
 
         async function joinRoom() {
-            console.log('Tentando entrar na sala...');
+            console.log('🎯 Botão Entrar na Sala clicado!');
             
-            const roomId = document.getElementById('room-id').value;
-            const playerName = document.getElementById('player-name').value;
+            const roomId = document.getElementById('room-id').value.trim();
+            const playerName = document.getElementById('player-name').value.trim();
 
             if (!roomId || !playerName) {
-                addLog('❌ Preencha todos os campos!');
+                addLog('❌ Preencha ID da sala e seu nome!');
                 return;
             }
 
             try {
-                console.log('Verificando se sala existe...');
+                console.log('🔍 Verificando sala...');
                 
                 // Verificar se a sala existe
                 const roomRef = ref(db, `rooms/${roomId}`);
@@ -666,8 +634,8 @@
 
                 gameState.roomId = roomId;
 
-                console.log('Adicionando jogador à sala...');
-
+                console.log('👤 Adicionando jogador...');
+                
                 // Adicionar jogador
                 const playerRef = push(ref(db, `rooms/${roomId}/players`));
                 gameState.playerId = playerRef.key;
@@ -681,7 +649,7 @@
                     joinedAt: Date.now()
                 });
 
-                // Atualizar contador de jogadores
+                // Atualizar contador
                 await update(ref(db, `rooms/${roomId}/meta`), {
                     playerCount: currentPlayers + 1
                 });
@@ -691,8 +659,8 @@
                 startListeningToRoom();
 
             } catch (error) {
-                console.error('Erro ao entrar na sala:', error);
-                addLog('❌ Erro ao entrar na sala. Verifique o ID.');
+                console.error('💥 ERRO ao entrar na sala:', error);
+                addLog('❌ Erro ao entrar na sala.');
             }
         }
 
@@ -707,7 +675,6 @@
 
             if (gameState.isSpectator) {
                 document.getElementById('spectator-mode').style.display = 'block';
-                // Desativar ações para espectadores
                 document.querySelectorAll('.action-btn-large').forEach(btn => {
                     btn.disabled = true;
                 });
@@ -715,7 +682,7 @@
         }
 
         function startListeningToRoom() {
-            console.log('Iniciando escuta da sala...');
+            console.log('👂 Iniciando escuta da sala...');
             
             // Escutar jogadores
             onValue(ref(db, `rooms/${gameState.roomId}/players`), (snapshot) => {
@@ -762,23 +729,9 @@
                 document.getElementById('weather-event').style.display = 'block';
                 document.getElementById('weather-text').textContent = game.weather;
             }
-
-            // Atualizar role do jogador atual
-            if (game.roles && gameState.playerId) {
-                const playerRole = game.roles[gameState.playerId];
-                if (playerRole && playerRole !== gameState.currentRole) {
-                    gameState.currentRole = playerRole;
-                    document.getElementById('role-display').textContent = 
-                        `🎭 ${getRoleDisplay(playerRole)}`;
-                    
-                    if (playerRole === 'assassin') {
-                        addLog('🔪 VOCÊ É O ASSASSINO! Elimine os outros sem ser descoberto!');
-                    }
-                }
-            }
         }
 
-        // SISTEMA DE AÇÕES - CORREÇÃO: Mudado para explore
+        // SISTEMA DE AÇÕES
         async function explore() {
             const roll = rollDice(20);
             addLog(`🔍 Vasculhando... Rolou ${roll} no D20`);
@@ -787,13 +740,9 @@
                 addLog('🕷️ Oops! Encontrou algumas aranhas mas nada de importante...');
             } else if (roll <= 15) {
                 addLog('🤔 Hmm... Nada interessante por aqui. Continue procurando!');
-            } else if (roll <= 18) {
+            } else {
                 const item = getRandomItem('comum');
                 addLog(`🎉 Encontrou: ${item.emoji} ${item.name}!`);
-                await addItemToInventory(item);
-            } else {
-                const item = getRandomItem('incomum');
-                addLog(`💎 Achado raro: ${item.emoji} ${item.name}!`);
                 await addItemToInventory(item);
             }
         }
@@ -809,9 +758,8 @@
             } else if (roll <= 6) {
                 addLog('🌵 Só encontrou cactos... nada comestível.');
             } else {
-                const item = { name: "Comida Enlatada", emoji: "🥫" };
-                addLog(`🍽️ Encontrou comida: ${item.emoji} ${item.name}!`);
-                await addItemToInventory(item);
+                addLog(`🍽️ Encontrou comida!`);
+                await addItemToInventory({ name: "Comida", emoji: "🍖" });
             }
         }
 
@@ -825,12 +773,10 @@
                 addLog(`🩸 Machucou a mão! ${damage} de dano.`);
             } else if (roll <= 4) {
                 addLog('🌿 Caiu apenas um galho seco...');
-                const item = { name: "Galho", emoji: "🌿" };
-                await addItemToInventory(item);
+                await addItemToInventory({ name: "Galho", emoji: "🌿" });
             } else {
                 addLog('🎯 Madeira obtida com sucesso!');
-                const item = { name: "Madeira", emoji: "🪵" };
-                await addItemToInventory(item);
+                await addItemToInventory({ name: "Madeira", emoji: "🪵" });
             }
         }
 
@@ -846,12 +792,25 @@
         }
 
         function getRandomWeather() {
-            return weatherEvents[Math.floor(Math.random() * weatherEvents.length)];
+            const events = [
+                "🌞 Dia Ensolarado - Calor Intenso",
+                "🌧️ Chuva Forte - Risco de Enchentes", 
+                "🌬️ Ventania - Dificuldade em Explorar",
+                "🌫️ Névoa Espessa - Visibilidade Reduzida"
+            ];
+            return events[Math.floor(Math.random() * events.length)];
         }
 
         function getRandomItem(rarity) {
-            const items = gameItems[rarity];
-            return items[Math.floor(Math.random() * items.length)];
+            const items = {
+                comum: [
+                    { name: "Madeira", emoji: "🪵" },
+                    { name: "Galho", emoji: "🌿" },
+                    { name: "Pedra", emoji: "🪨" }
+                ]
+            };
+            const itemList = items[rarity] || items.comum;
+            return itemList[Math.floor(Math.random() * itemList.length)];
         }
 
         function getRoleDisplay(role) {
@@ -904,53 +863,13 @@
         async function assignRoles() {
             if (!gameState.isHost) return;
 
-            const playersRef = ref(db, `rooms/${gameState.roomId}/players`);
-            const snapshot = await get(playersRef);
-            const players = snapshot.val() || {};
-
-            const playingPlayers = Object.entries(players).filter(([id, player]) => 
-                player.isPlaying && !player.isHost
-            );
-
-            if (playingPlayers.length < 2) {
-                addLog('❌ Precisa de pelo menos 2 jogadores para sortear roles!');
-                return;
-            }
-
-            // Escolher assassino aleatório
-            const assassinIndex = Math.floor(Math.random() * playingPlayers.length);
-            const roles = {};
-
-            playingPlayers.forEach(([id, player], index) => {
-                roles[id] = index === assassinIndex ? 'assassin' : 'survivor';
-            });
-
-            // Salvar roles
-            await update(ref(db, `rooms/${gameState.roomId}/game`), {
-                roles: roles,
-                gameStarted: true
-            });
-
-            addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
+            addLog('🎭 Sortear papéis em desenvolvimento...');
         }
 
         async function nextTurn() {
             if (!gameState.isHost) return;
 
-            const gameRef = ref(db, `rooms/${gameState.roomId}/game`);
-            const snapshot = await get(gameRef);
-            const game = snapshot.exists() ? snapshot.val() : { turn: 1 };
-
-            const newTurn = game.turn + 1;
-            const newWeather = getRandomWeather();
-
-            await update(gameRef, {
-                turn: newTurn,
-                weather: newWeather,
-                phase: newTurn % 2 === 0 ? 'night' : 'day'
-            });
-
-            addLog(`⏭️ Turno ${newTurn} iniciado - ${newWeather}`);
+            addLog('⏭️ Avançar turno em desenvolvimento...');
         }
 
         async function leaveRoom() {
@@ -973,32 +892,10 @@
             document.getElementById('host-controls').style.display = 'none';
             document.getElementById('spectator-mode').style.display = 'none';
             
-            // Reativar ações
             document.querySelectorAll('.action-btn-large').forEach(btn => {
                 btn.disabled = false;
             });
         }
-
-        // LIMPEZA DE SALAS
-        setInterval(async () => {
-            try {
-                const roomsRef = ref(db, 'rooms');
-                const snapshot = await get(roomsRef);
-                const rooms = snapshot.val() || {};
-
-                const now = Date.now();
-                for (const [roomId, roomData] of Object.entries(rooms)) {
-                    if (now - roomData.meta.createdAt > 300000) { // 5 minutos
-                        if (!roomData.players || Object.keys(roomData.players).length === 0) {
-                            await remove(ref(db, `rooms/${roomId}`));
-                            console.log(`Sala ${roomId} removida por inatividade`);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.log('Limpeza de salas executada');
-            }
-        }, 60000);
     </script>
 </body>
 </html>
