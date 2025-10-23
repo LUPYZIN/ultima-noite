@@ -441,9 +441,9 @@
             </div>
 
             <div class="action-buttons">
-                <button class="action-btn-large" id="explore-random">
+                <button class="action-btn-large" id="explore-btn">
                     <div class="action-icon">🔍</div>
-                    <div>Vasculhar Aleatório</div>
+                    <div>Vasculhar</div>
                 </button>
                 <button class="action-btn-large" id="search-food">
                     <div class="action-icon">🍖</div>
@@ -537,7 +537,7 @@
             "❄️ Frio Noturno - Hipotermia"
         ];
 
-        // INICIALIZAÇÃO CORRIGIDA
+        // INICIALIZAÇÃO
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Página carregada - Iniciando em 3 segundos...');
             
@@ -550,6 +550,7 @@
         });
 
         function initializeEventListeners() {
+            // CORREÇÃO: Adicionar event listeners corretamente
             document.getElementById('create-room-btn').addEventListener('click', createRoom);
             document.getElementById('join-room-btn').addEventListener('click', joinRoom);
             document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
@@ -561,7 +562,8 @@
                 });
             });
 
-            document.getElementById('explore-random').addEventListener('click', exploreRandom);
+            // CORREÇÃO: Mudado para explore-btn
+            document.getElementById('explore-btn').addEventListener('click', explore);
             document.getElementById('search-food').addEventListener('click', searchFood);
             document.getElementById('chop-tree').addEventListener('click', chopTree);
             document.getElementById('assign-roles-btn').addEventListener('click', assignRoles);
@@ -569,6 +571,8 @@
         }
 
         async function createRoom() {
+            console.log('Tentando criar sala...');
+            
             const roomName = document.getElementById('new-room-name').value;
             const hostName = document.getElementById('host-name').value;
 
@@ -583,14 +587,19 @@
                 gameState.roomId = roomId;
                 gameState.isHost = true;
 
+                console.log('Criando sala no Firebase...');
+
+                // Criar estrutura da sala
                 await set(ref(db, `rooms/${roomId}/meta`), {
                     name: roomName,
                     host: hostName,
                     createdAt: Date.now(),
                     playerCount: 1,
-                    maxPlayers: 6
+                    maxPlayers: 6,
+                    gameStarted: false
                 });
 
+                // Adicionar host como jogador
                 const playerRef = push(ref(db, `rooms/${roomId}/players`));
                 gameState.playerId = playerRef.key;
                 
@@ -599,25 +608,33 @@
                     role: 'host',
                     isHost: true,
                     isPlaying: true,
-                    inventory: []
+                    inventory: [],
+                    joinedAt: Date.now()
                 });
 
+                // Estado do jogo
                 await set(ref(db, `rooms/${roomId}/game`), {
                     turn: 1,
                     weather: getRandomWeather(),
-                    phase: 'day'
+                    phase: 'day',
+                    log: [`Sala "${roomName}" criada por ${hostName}`]
                 });
 
                 updateUIForRoom();
-                addLog(`✅ Sala "${roomName}" criada! ID: ${roomId}`);
+                addLog(`✅ Sala "${roomName}" criada com sucesso!`);
+                addLog(`📋 ID da sala: ${roomId}`);
+                addLog(`👑 Você é o host da sala`);
                 startListeningToRoom();
 
             } catch (error) {
-                addLog('❌ Erro ao criar sala');
+                console.error('Erro ao criar sala:', error);
+                addLog('❌ Erro ao criar sala. Verifique o console.');
             }
         }
 
         async function joinRoom() {
+            console.log('Tentando entrar na sala...');
+            
             const roomId = document.getElementById('room-id').value;
             const playerName = document.getElementById('player-name').value;
 
@@ -627,25 +644,46 @@
             }
 
             try {
+                console.log('Verificando se sala existe...');
+                
+                // Verificar se a sala existe
                 const roomRef = ref(db, `rooms/${roomId}`);
                 const snapshot = await get(roomRef);
 
                 if (!snapshot.exists()) {
-                    addLog('❌ Sala não encontrada!');
+                    addLog('❌ Sala não encontrada! Verifique o ID.');
                     return;
+                }
+
+                const roomData = snapshot.val();
+                const currentPlayers = Object.keys(roomData.players || {}).length;
+
+                // Verificar se sala está cheia
+                if (currentPlayers >= roomData.meta.maxPlayers) {
+                    gameState.isSpectator = true;
+                    addLog('👁️ Sala cheia! Entrando como espectador...');
                 }
 
                 gameState.roomId = roomId;
 
+                console.log('Adicionando jogador à sala...');
+
+                // Adicionar jogador
                 const playerRef = push(ref(db, `rooms/${roomId}/players`));
                 gameState.playerId = playerRef.key;
                 
                 await set(playerRef, {
                     name: playerName,
-                    role: 'survivor',
+                    role: gameState.isSpectator ? 'spectator' : 'survivor',
                     isHost: false,
-                    isPlaying: true,
-                    inventory: []
+                    isPlaying: !gameState.isSpectator,
+                    inventory: [],
+                    joinedAt: Date.now()
+                });
+
+                // Atualizar contador de jogadores
+                await update(ref(db, `rooms/${roomId}/meta`), {
+                    playerCount: currentPlayers + 1
                 });
 
                 updateUIForRoom();
@@ -653,7 +691,8 @@
                 startListeningToRoom();
 
             } catch (error) {
-                addLog('❌ Erro ao entrar na sala');
+                console.error('Erro ao entrar na sala:', error);
+                addLog('❌ Erro ao entrar na sala. Verifique o ID.');
             }
         }
 
@@ -665,14 +704,26 @@
             if (gameState.isHost) {
                 document.getElementById('host-controls').style.display = 'block';
             }
+
+            if (gameState.isSpectator) {
+                document.getElementById('spectator-mode').style.display = 'block';
+                // Desativar ações para espectadores
+                document.querySelectorAll('.action-btn-large').forEach(btn => {
+                    btn.disabled = true;
+                });
+            }
         }
 
         function startListeningToRoom() {
+            console.log('Iniciando escuta da sala...');
+            
+            // Escutar jogadores
             onValue(ref(db, `rooms/${gameState.roomId}/players`), (snapshot) => {
                 const players = snapshot.val() || {};
                 updatePlayersList(players);
             });
 
+            // Escutar estado do jogo
             onValue(ref(db, `rooms/${gameState.roomId}/game`), (snapshot) => {
                 const game = snapshot.val() || {};
                 updateGameState(game);
@@ -686,15 +737,19 @@
             Object.entries(players).forEach(([id, player]) => {
                 const playerElement = document.createElement('div');
                 playerElement.className = 'player-card';
+                
                 playerElement.innerHTML = `
-                    <div class="player-avatar">${player.name.charAt(0)}</div>
+                    <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
                     <div class="player-info">
                         <div class="player-name">
-                            ${player.name} ${player.isHost ? '👑' : ''}
+                            ${player.name}
+                            ${player.isHost ? '👑' : ''}
+                            ${id === gameState.playerId ? ' (Você)' : ''}
                         </div>
                         <div class="player-role">${getRoleDisplay(player.role)}</div>
                     </div>
                 `;
+
                 list.appendChild(playerElement);
             });
 
@@ -707,20 +762,38 @@
                 document.getElementById('weather-event').style.display = 'block';
                 document.getElementById('weather-text').textContent = game.weather;
             }
+
+            // Atualizar role do jogador atual
+            if (game.roles && gameState.playerId) {
+                const playerRole = game.roles[gameState.playerId];
+                if (playerRole && playerRole !== gameState.currentRole) {
+                    gameState.currentRole = playerRole;
+                    document.getElementById('role-display').textContent = 
+                        `🎭 ${getRoleDisplay(playerRole)}`;
+                    
+                    if (playerRole === 'assassin') {
+                        addLog('🔪 VOCÊ É O ASSASSINO! Elimine os outros sem ser descoberto!');
+                    }
+                }
+            }
         }
 
-        // SISTEMA DE AÇÕES
-        async function exploreRandom() {
+        // SISTEMA DE AÇÕES - CORREÇÃO: Mudado para explore
+        async function explore() {
             const roll = rollDice(20);
             addLog(`🔍 Vasculhando... Rolou ${roll} no D20`);
 
             if (roll <= 8) {
-                addLog('🕷️ Oops! Encontrou aranhas mas nada útil...');
+                addLog('🕷️ Oops! Encontrou algumas aranhas mas nada de importante...');
             } else if (roll <= 15) {
-                addLog('🤔 Nada interessante aqui...');
-            } else {
+                addLog('🤔 Hmm... Nada interessante por aqui. Continue procurando!');
+            } else if (roll <= 18) {
                 const item = getRandomItem('comum');
                 addLog(`🎉 Encontrou: ${item.emoji} ${item.name}!`);
+                await addItemToInventory(item);
+            } else {
+                const item = getRandomItem('incomum');
+                addLog(`💎 Achado raro: ${item.emoji} ${item.name}!`);
                 await addItemToInventory(item);
             }
         }
@@ -730,14 +803,14 @@
             addLog(`🍖 Procurando comida... Rolou ${roll} no D8`);
 
             if (roll <= 3) {
-                addLog('🐍 Cobra! Rolou D4 para dano...');
+                addLog('🐍 Encontrou uma cobra! Rolou D4 para dano...');
                 const damage = rollDice(4);
-                addLog(`💔 Tomou ${damage} de dano!`);
+                addLog(`💔 Tomou ${damage} de dano da cobra!`);
             } else if (roll <= 6) {
-                addLog('🌵 Só cactos... nada comestível.');
+                addLog('🌵 Só encontrou cactos... nada comestível.');
             } else {
-                const item = { name: "Comida", emoji: "🍖" };
-                addLog(`🍽️ Encontrou comida!`);
+                const item = { name: "Comida Enlatada", emoji: "🥫" };
+                addLog(`🍽️ Encontrou comida: ${item.emoji} ${item.name}!`);
                 await addItemToInventory(item);
             }
         }
@@ -747,15 +820,17 @@
             addLog(`🪓 Espancando árvore... Rolou ${roll} no D8`);
 
             if (roll <= 2) {
-                addLog('💢 Árvore revida! D4 de dano...');
+                addLog('💢 A árvore revida! Rolou D4 para dano...');
                 const damage = rollDice(4);
                 addLog(`🩸 Machucou a mão! ${damage} de dano.`);
-            } else if (roll <= 5) {
-                addLog('🌿 Caiu um galho seco...');
-                await addItemToInventory({ name: "Galho", emoji: "🌿" });
+            } else if (roll <= 4) {
+                addLog('🌿 Caiu apenas um galho seco...');
+                const item = { name: "Galho", emoji: "🌿" };
+                await addItemToInventory(item);
             } else {
-                addLog('🎯 Madeira obtida!');
-                await addItemToInventory({ name: "Madeira", emoji: "🪵" });
+                addLog('🎯 Madeira obtida com sucesso!');
+                const item = { name: "Madeira", emoji: "🪵" };
+                await addItemToInventory(item);
             }
         }
 
@@ -783,7 +858,8 @@
             const roles = {
                 'host': '👑 Host',
                 'survivor': '😊 Sobrevivente', 
-                'assassin': '🔪 Assassino'
+                'assassin': '🔪 Assassino',
+                'spectator': '👁️ Espectador'
             };
             return roles[role] || role;
         }
@@ -837,10 +913,11 @@
             );
 
             if (playingPlayers.length < 2) {
-                addLog('❌ Precisa de pelo menos 2 jogadores!');
+                addLog('❌ Precisa de pelo menos 2 jogadores para sortear roles!');
                 return;
             }
 
+            // Escolher assassino aleatório
             const assassinIndex = Math.floor(Math.random() * playingPlayers.length);
             const roles = {};
 
@@ -848,7 +925,11 @@
                 roles[id] = index === assassinIndex ? 'assassin' : 'survivor';
             });
 
-            await update(ref(db, `rooms/${gameState.roomId}/game`), { roles });
+            // Salvar roles
+            await update(ref(db, `rooms/${gameState.roomId}/game`), {
+                roles: roles,
+                gameStarted: true
+            });
 
             addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
         }
@@ -860,12 +941,16 @@
             const snapshot = await get(gameRef);
             const game = snapshot.exists() ? snapshot.val() : { turn: 1 };
 
+            const newTurn = game.turn + 1;
+            const newWeather = getRandomWeather();
+
             await update(gameRef, {
-                turn: game.turn + 1,
-                weather: getRandomWeather()
+                turn: newTurn,
+                weather: newWeather,
+                phase: newTurn % 2 === 0 ? 'night' : 'day'
             });
 
-            addLog(`⏭️ Turno ${game.turn + 1} iniciado`);
+            addLog(`⏭️ Turno ${newTurn} iniciado - ${newWeather}`);
         }
 
         async function leaveRoom() {
@@ -873,18 +958,25 @@
                 await remove(ref(db, `rooms/${gameState.roomId}/players/${gameState.playerId}`));
             }
             resetUI();
-            addLog('🚪 Saiu da sala');
+            addLog('🚪 Você saiu da sala');
         }
 
         function resetUI() {
             gameState.roomId = null;
             gameState.playerId = null;
             gameState.isHost = false;
+            gameState.isSpectator = false;
             
             document.getElementById('room-system').style.display = 'block';
             document.getElementById('room-management').style.display = 'none';
             document.getElementById('leave-room-btn').style.display = 'none';
             document.getElementById('host-controls').style.display = 'none';
+            document.getElementById('spectator-mode').style.display = 'none';
+            
+            // Reativar ações
+            document.querySelectorAll('.action-btn-large').forEach(btn => {
+                btn.disabled = false;
+            });
         }
 
         // LIMPEZA DE SALAS
@@ -899,6 +991,7 @@
                     if (now - roomData.meta.createdAt > 300000) { // 5 minutos
                         if (!roomData.players || Object.keys(roomData.players).length === 0) {
                             await remove(ref(db, `rooms/${roomId}`));
+                            console.log(`Sala ${roomId} removida por inatividade`);
                         }
                     }
                 }
