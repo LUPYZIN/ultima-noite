@@ -25,13 +25,13 @@
         }
 
         body {
-            background: linear-gradient(135deg, var(--bg) 0%, #151a28 100%);
+            background: var(--bg);
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
         }
 
-        /* Animação de entrada CORRIGIDA */
+        /* Animação de entrada */
         #splash-screen {
             position: fixed;
             top: 0;
@@ -44,11 +44,6 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
-        }
-
-        .title-container {
-            text-align: center;
-            padding: 20px;
         }
 
         .title-animation {
@@ -72,30 +67,13 @@
         }
 
         @keyframes fadeInScale {
-            0% {
-                opacity: 0;
-                transform: scale(0.8);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
         }
 
         @keyframes fadeIn {
-            from { 
-                opacity: 0; 
-            }
-            to { 
-                opacity: 1; 
-            }
-        }
-
-        @keyframes fadeOut {
-            to { 
-                opacity: 0; 
-                visibility: hidden;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         /* Layout Principal */
@@ -115,18 +93,6 @@
             padding: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            animation: slideUp 0.5s ease-out;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         /* Header */
@@ -186,7 +152,6 @@
         input:focus {
             outline: none;
             border-color: var(--accent);
-            box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
         }
 
         button {
@@ -198,14 +163,12 @@
 
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
         }
 
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
         }
 
         button.danger {
@@ -232,11 +195,6 @@
             padding: 12px;
             background: var(--glass);
             border-radius: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .player-card:hover {
-            background: rgba(255, 255, 255, 0.1);
         }
 
         .player-avatar {
@@ -249,12 +207,10 @@
             justify-content: center;
             font-weight: bold;
             font-size: 18px;
-            flex-shrink: 0;
         }
 
         .player-info {
             flex: 1;
-            min-width: 0;
         }
 
         .player-name {
@@ -262,19 +218,16 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-wrap: wrap;
         }
 
         .player-role {
             font-size: 12px;
             color: var(--muted);
-            margin-top: 2px;
         }
 
         .player-actions {
             display: flex;
             gap: 5px;
-            flex-shrink: 0;
         }
 
         .action-btn {
@@ -285,7 +238,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
         }
 
         /* Área Principal */
@@ -300,7 +252,6 @@
             padding: 15px;
             border-radius: 10px;
             text-align: center;
-            animation: pulse 2s infinite;
         }
 
         .dice-roller {
@@ -314,10 +265,6 @@
             background: var(--glass);
             border: 2px solid rgba(255, 255, 255, 0.2);
             height: 60px;
-        }
-
-        .dice-btn:hover {
-            border-color: var(--accent);
         }
 
         .action-buttons {
@@ -355,19 +302,6 @@
             padding: 8px;
             border-radius: 6px;
             background: rgba(255, 255, 255, 0.05);
-            animation: slideIn 0.3s ease-out;
-            word-break: break-word;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
         }
 
         /* Painel Direito */
@@ -384,13 +318,7 @@
             padding: 10px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .item-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--accent);
         }
 
         .item-icon {
@@ -413,169 +341,55 @@
             margin-top: 10px;
         }
 
-        /* RESPONSIVIDADE MELHORADA */
+        /* Responsividade */
         @media (max-width: 1200px) {
             .container {
                 grid-template-columns: 280px 1fr;
-                grid-template-rows: auto auto auto;
             }
-            
             .container > aside:last-child {
                 grid-column: 1 / -1;
-                grid-row: 3;
             }
         }
 
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
-                grid-template-rows: auto;
                 padding: 10px;
-                gap: 15px;
             }
-            
             .header {
                 flex-direction: column;
                 text-align: center;
-                gap: 10px;
             }
-            
-            .room-info {
-                justify-content: center;
-            }
-            
             .dice-roller {
                 grid-template-columns: repeat(3, 1fr);
             }
-            
             .action-buttons {
                 grid-template-columns: 1fr;
             }
-            
-            .action-btn-large {
-                height: 70px;
-            }
-            
             .inventory-grid {
                 grid-template-columns: repeat(4, 1fr);
-            }
-            
-            .player-card {
-                flex-wrap: wrap;
-            }
-            
-            .player-actions {
-                width: 100%;
-                justify-content: center;
-                margin-top: 8px;
             }
         }
 
         @media (max-width: 480px) {
-            .container {
-                padding: 8px;
-                gap: 10px;
-            }
-            
-            .panel {
-                padding: 15px;
-            }
-            
             .dice-roller {
                 grid-template-columns: repeat(2, 1fr);
             }
-            
             .inventory-grid {
                 grid-template-columns: repeat(3, 1fr);
             }
-            
-            .game-log {
-                max-height: 200px;
-            }
-            
-            input, button {
-                padding: 10px;
-                font-size: 13px;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .title-animation {
-                font-size: 2rem;
-                letter-spacing: 2px;
-            }
-            
-            .dice-roller {
-                grid-template-columns: 1fr 1fr;
-            }
-            
-            .inventory-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        /* Animações extras */
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
-        }
-
-        .shake {
-            animation: shake 0.5s ease-in-out;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        /* Rolagem de dados */
-        .dice-roll-animation {
-            animation: diceRoll 1s ease-out;
-        }
-
-        @keyframes diceRoll {
-            0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
-            50% { transform: rotate(180deg) scale(1.2); opacity: 1; }
-            100% { transform: rotate(360deg) scale(1); opacity: 1; }
-        }
-
-        /* Loading entre tela de entrada e menu */
-        .loading-transition {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--bg);
-            z-index: 999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            animation: fadeOut 0.5s ease-in-out 0.5s forwards;
         }
     </style>
 </head>
 <body>
-    <!-- Tela de Abertura CORRIGIDA -->
+    <!-- Tela de Abertura -->
     <div id="splash-screen">
-        <div class="title-container">
-            <div class="title-animation">ULTIMA NOITE</div>
-            <div class="subtitle">O RPG de Sobrevivência no Deserto</div>
-        </div>
+        <div class="title-animation">ULTIMA NOITE</div>
+        <div class="subtitle">O RPG de Sobrevivência no Deserto</div>
     </div>
-
-    <!-- Loading Transition -->
-    <div class="loading-transition" id="loading-transition" style="display: none;"></div>
 
     <!-- Interface Principal -->
     <div class="container" id="main-container">
-        <!-- Header -->
         <header class="header panel">
             <div class="game-title">ULTIMA NOITE - MENU</div>
             <div class="room-info">
@@ -585,7 +399,6 @@
             </div>
         </header>
 
-        <!-- Painel Esquerdo - Sistema de Salas e Jogadores -->
         <aside class="panel">
             <div class="room-system" id="room-system">
                 <h3>🔄 Sistema de Salas</h3>
@@ -606,21 +419,17 @@
 
             <div id="room-management" style="display: none;">
                 <h3>👥 Jogadores na Sala</h3>
-                <div class="players-list" id="players-list">
-                    <!-- Jogadores aparecerão aqui -->
-                </div>
-                
+                <div class="players-list" id="players-list"></div>
                 <div class="spectator-mode" id="spectator-mode" style="display: none;">
                     <strong>👁️ Modo Visitante</strong>
-                    <p>Aguardando o Host te convidar para jogar...</p>
+                    <p>Aguardando convite para jogar...</p>
                 </div>
             </div>
         </aside>
 
-        <!-- Área Central - Ações e Log -->
         <main class="panel main-area">
             <div class="weather-event" id="weather-event" style="display: none;">
-                <div id="weather-text">🌞 Dia Ensolarado - Calor Intenso</div>
+                <div id="weather-text">🌞 Dia Ensolarado</div>
             </div>
 
             <div class="dice-roller">
@@ -629,7 +438,6 @@
                 <button class="dice-btn" data-dice="6">🎲 D6</button>
                 <button class="dice-btn" data-dice="8">🎲 D8</button>
                 <button class="dice-btn" data-dice="20">🎲 D20</button>
-                <button class="dice-btn" id="custom-dice">🎲 Personalizado</button>
             </div>
 
             <div class="action-buttons">
@@ -652,11 +460,10 @@
             </div>
 
             <div class="game-log" id="game-log">
-                <div class="log-entry">📝 Bem-vindo ao ULTIMA NOITE! Entre em uma sala para começar.</div>
+                <div class="log-entry">📝 Bem-vindo ao ULTIMA NOITE!</div>
             </div>
         </main>
 
-        <!-- Painel Direito - Inventário e Controles -->
         <aside class="panel">
             <div id="player-info">
                 <h3>🎯 Sua Identidade</h3>
@@ -665,16 +472,13 @@
 
             <div id="inventory-section">
                 <h3>🎒 Seu Inventário</h3>
-                <div class="inventory-grid" id="inventory-grid">
-                    <!-- Itens aparecerão aqui -->
-                </div>
+                <div class="inventory-grid" id="inventory-grid"></div>
             </div>
 
             <div id="host-controls" style="display: none;">
                 <h3>👑 Controles do Host</h3>
                 <button id="assign-roles-btn" class="success">🎭 Sortear Identidades</button>
                 <button id="next-turn-btn" class="success">⏭️ Avançar Turno</button>
-                <button id="manage-players-btn">👥 Gerenciar Jogadores</button>
             </div>
         </aside>
     </div>
@@ -693,4 +497,415 @@
             measurementId: "G-J8XZBFZH32"
         };
 
-        const DATABASE_URL = "https
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const gameState = {
+            roomId: null,
+            playerId: null,
+            isHost: false,
+            isSpectator: false,
+            currentRole: null
+        };
+
+        const gameItems = {
+            comum: [
+                { name: "Madeira", emoji: "🪵", chance: 30 },
+                { name: "Galho", emoji: "🌿", chance: 40 },
+                { name: "Pedra", emoji: "🪨", chance: 35 },
+                { name: "Água Suja", emoji: "💧", chance: 25 }
+            ],
+            incomum: [
+                { name: "Faca", emoji: "🔪", chance: 15 },
+                { name: "Comida Enlatada", emoji: "🥫", chance: 12 },
+                { name: "Corda", emoji: "🪢", chance: 10 },
+                { name: "Isqueiro", emoji: "🔥", chance: 8 }
+            ],
+            raro: [
+                { name: "Kit Médico", emoji: "💊", chance: 5 },
+                { name: "Rádio", emoji: "📻", chance: 3 },
+                { name: "Arma", emoji: "🔫", chance: 2 }
+            ]
+        };
+
+        const weatherEvents = [
+            "🌞 Dia Ensolarado - Calor Intenso",
+            "🌧️ Chuva Forte - Risco de Enchentes", 
+            "🌬️ Ventania - Dificuldade em Explorar",
+            "🌫️ Névoa Espessa - Visibilidade Reduzida",
+            "🌡️ Calor Extremo - Desidratação",
+            "❄️ Frio Noturno - Hipotermia"
+        ];
+
+        // INICIALIZAÇÃO CORRIGIDA
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Página carregada - Iniciando em 3 segundos...');
+            
+            setTimeout(function() {
+                console.log('Mostrando menu...');
+                document.getElementById('splash-screen').style.display = 'none';
+                document.getElementById('main-container').style.display = 'grid';
+                initializeEventListeners();
+            }, 3000);
+        });
+
+        function initializeEventListeners() {
+            document.getElementById('create-room-btn').addEventListener('click', createRoom);
+            document.getElementById('join-room-btn').addEventListener('click', joinRoom);
+            document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
+
+            document.querySelectorAll('.dice-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const dice = e.target.dataset.dice;
+                    if (dice) rollDice(parseInt(dice));
+                });
+            });
+
+            document.getElementById('explore-random').addEventListener('click', exploreRandom);
+            document.getElementById('search-food').addEventListener('click', searchFood);
+            document.getElementById('chop-tree').addEventListener('click', chopTree);
+            document.getElementById('assign-roles-btn').addEventListener('click', assignRoles);
+            document.getElementById('next-turn-btn').addEventListener('click', nextTurn);
+        }
+
+        async function createRoom() {
+            const roomName = document.getElementById('new-room-name').value;
+            const hostName = document.getElementById('host-name').value;
+
+            if (!roomName || !hostName) {
+                addLog('❌ Preencha todos os campos!');
+                return;
+            }
+
+            const roomId = generateRoomId();
+            
+            try {
+                gameState.roomId = roomId;
+                gameState.isHost = true;
+
+                await set(ref(db, `rooms/${roomId}/meta`), {
+                    name: roomName,
+                    host: hostName,
+                    createdAt: Date.now(),
+                    playerCount: 1,
+                    maxPlayers: 6
+                });
+
+                const playerRef = push(ref(db, `rooms/${roomId}/players`));
+                gameState.playerId = playerRef.key;
+                
+                await set(playerRef, {
+                    name: hostName,
+                    role: 'host',
+                    isHost: true,
+                    isPlaying: true,
+                    inventory: []
+                });
+
+                await set(ref(db, `rooms/${roomId}/game`), {
+                    turn: 1,
+                    weather: getRandomWeather(),
+                    phase: 'day'
+                });
+
+                updateUIForRoom();
+                addLog(`✅ Sala "${roomName}" criada! ID: ${roomId}`);
+                startListeningToRoom();
+
+            } catch (error) {
+                addLog('❌ Erro ao criar sala');
+            }
+        }
+
+        async function joinRoom() {
+            const roomId = document.getElementById('room-id').value;
+            const playerName = document.getElementById('player-name').value;
+
+            if (!roomId || !playerName) {
+                addLog('❌ Preencha todos os campos!');
+                return;
+            }
+
+            try {
+                const roomRef = ref(db, `rooms/${roomId}`);
+                const snapshot = await get(roomRef);
+
+                if (!snapshot.exists()) {
+                    addLog('❌ Sala não encontrada!');
+                    return;
+                }
+
+                gameState.roomId = roomId;
+
+                const playerRef = push(ref(db, `rooms/${roomId}/players`));
+                gameState.playerId = playerRef.key;
+                
+                await set(playerRef, {
+                    name: playerName,
+                    role: 'survivor',
+                    isHost: false,
+                    isPlaying: true,
+                    inventory: []
+                });
+
+                updateUIForRoom();
+                addLog(`✅ Entrou na sala como ${playerName}`);
+                startListeningToRoom();
+
+            } catch (error) {
+                addLog('❌ Erro ao entrar na sala');
+            }
+        }
+
+        function updateUIForRoom() {
+            document.getElementById('room-system').style.display = 'none';
+            document.getElementById('room-management').style.display = 'block';
+            document.getElementById('leave-room-btn').style.display = 'block';
+            
+            if (gameState.isHost) {
+                document.getElementById('host-controls').style.display = 'block';
+            }
+        }
+
+        function startListeningToRoom() {
+            onValue(ref(db, `rooms/${gameState.roomId}/players`), (snapshot) => {
+                const players = snapshot.val() || {};
+                updatePlayersList(players);
+            });
+
+            onValue(ref(db, `rooms/${gameState.roomId}/game`), (snapshot) => {
+                const game = snapshot.val() || {};
+                updateGameState(game);
+            });
+        }
+
+        function updatePlayersList(players) {
+            const list = document.getElementById('players-list');
+            list.innerHTML = '';
+
+            Object.entries(players).forEach(([id, player]) => {
+                const playerElement = document.createElement('div');
+                playerElement.className = 'player-card';
+                playerElement.innerHTML = `
+                    <div class="player-avatar">${player.name.charAt(0)}</div>
+                    <div class="player-info">
+                        <div class="player-name">
+                            ${player.name} ${player.isHost ? '👑' : ''}
+                        </div>
+                        <div class="player-role">${getRoleDisplay(player.role)}</div>
+                    </div>
+                `;
+                list.appendChild(playerElement);
+            });
+
+            document.getElementById('player-count').textContent = 
+                `Jogadores: ${Object.keys(players).length}/6`;
+        }
+
+        function updateGameState(game) {
+            if (game.weather) {
+                document.getElementById('weather-event').style.display = 'block';
+                document.getElementById('weather-text').textContent = game.weather;
+            }
+        }
+
+        // SISTEMA DE AÇÕES
+        async function exploreRandom() {
+            const roll = rollDice(20);
+            addLog(`🔍 Vasculhando... Rolou ${roll} no D20`);
+
+            if (roll <= 8) {
+                addLog('🕷️ Oops! Encontrou aranhas mas nada útil...');
+            } else if (roll <= 15) {
+                addLog('🤔 Nada interessante aqui...');
+            } else {
+                const item = getRandomItem('comum');
+                addLog(`🎉 Encontrou: ${item.emoji} ${item.name}!`);
+                await addItemToInventory(item);
+            }
+        }
+
+        async function searchFood() {
+            const roll = rollDice(8);
+            addLog(`🍖 Procurando comida... Rolou ${roll} no D8`);
+
+            if (roll <= 3) {
+                addLog('🐍 Cobra! Rolou D4 para dano...');
+                const damage = rollDice(4);
+                addLog(`💔 Tomou ${damage} de dano!`);
+            } else if (roll <= 6) {
+                addLog('🌵 Só cactos... nada comestível.');
+            } else {
+                const item = { name: "Comida", emoji: "🍖" };
+                addLog(`🍽️ Encontrou comida!`);
+                await addItemToInventory(item);
+            }
+        }
+
+        async function chopTree() {
+            const roll = rollDice(8);
+            addLog(`🪓 Espancando árvore... Rolou ${roll} no D8`);
+
+            if (roll <= 2) {
+                addLog('💢 Árvore revida! D4 de dano...');
+                const damage = rollDice(4);
+                addLog(`🩸 Machucou a mão! ${damage} de dano.`);
+            } else if (roll <= 5) {
+                addLog('🌿 Caiu um galho seco...');
+                await addItemToInventory({ name: "Galho", emoji: "🌿" });
+            } else {
+                addLog('🎯 Madeira obtida!');
+                await addItemToInventory({ name: "Madeira", emoji: "🪵" });
+            }
+        }
+
+        function rollDice(sides) {
+            const result = Math.floor(Math.random() * sides) + 1;
+            addLog(`🎲 Rolou D${sides}: ${result}`);
+            return result;
+        }
+
+        // FUNÇÕES AUXILIARES
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function getRandomWeather() {
+            return weatherEvents[Math.floor(Math.random() * weatherEvents.length)];
+        }
+
+        function getRandomItem(rarity) {
+            const items = gameItems[rarity];
+            return items[Math.floor(Math.random() * items.length)];
+        }
+
+        function getRoleDisplay(role) {
+            const roles = {
+                'host': '👑 Host',
+                'survivor': '😊 Sobrevivente', 
+                'assassin': '🔪 Assassino'
+            };
+            return roles[role] || role;
+        }
+
+        function addLog(message) {
+            const log = document.getElementById('game-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = message;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        async function addItemToInventory(item) {
+            if (!gameState.roomId || !gameState.playerId) return;
+
+            const playerRef = ref(db, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`);
+            const snapshot = await get(playerRef);
+            const inventory = snapshot.exists() ? snapshot.val() : [];
+            
+            inventory.push(item);
+            await set(playerRef, inventory);
+            updateInventoryDisplay(inventory);
+        }
+
+        function updateInventoryDisplay(inventory) {
+            const grid = document.getElementById('inventory-grid');
+            grid.innerHTML = '';
+
+            inventory.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item-card';
+                itemElement.innerHTML = `
+                    <div class="item-icon">${item.emoji}</div>
+                    <div class="item-name">${item.name}</div>
+                `;
+                grid.appendChild(itemElement);
+            });
+        }
+
+        // CONTROLES DO HOST
+        async function assignRoles() {
+            if (!gameState.isHost) return;
+
+            const playersRef = ref(db, `rooms/${gameState.roomId}/players`);
+            const snapshot = await get(playersRef);
+            const players = snapshot.val() || {};
+
+            const playingPlayers = Object.entries(players).filter(([id, player]) => 
+                player.isPlaying && !player.isHost
+            );
+
+            if (playingPlayers.length < 2) {
+                addLog('❌ Precisa de pelo menos 2 jogadores!');
+                return;
+            }
+
+            const assassinIndex = Math.floor(Math.random() * playingPlayers.length);
+            const roles = {};
+
+            playingPlayers.forEach(([id, player], index) => {
+                roles[id] = index === assassinIndex ? 'assassin' : 'survivor';
+            });
+
+            await update(ref(db, `rooms/${gameState.roomId}/game`), { roles });
+
+            addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
+        }
+
+        async function nextTurn() {
+            if (!gameState.isHost) return;
+
+            const gameRef = ref(db, `rooms/${gameState.roomId}/game`);
+            const snapshot = await get(gameRef);
+            const game = snapshot.exists() ? snapshot.val() : { turn: 1 };
+
+            await update(gameRef, {
+                turn: game.turn + 1,
+                weather: getRandomWeather()
+            });
+
+            addLog(`⏭️ Turno ${game.turn + 1} iniciado`);
+        }
+
+        async function leaveRoom() {
+            if (gameState.roomId && gameState.playerId) {
+                await remove(ref(db, `rooms/${gameState.roomId}/players/${gameState.playerId}`));
+            }
+            resetUI();
+            addLog('🚪 Saiu da sala');
+        }
+
+        function resetUI() {
+            gameState.roomId = null;
+            gameState.playerId = null;
+            gameState.isHost = false;
+            
+            document.getElementById('room-system').style.display = 'block';
+            document.getElementById('room-management').style.display = 'none';
+            document.getElementById('leave-room-btn').style.display = 'none';
+            document.getElementById('host-controls').style.display = 'none';
+        }
+
+        // LIMPEZA DE SALAS
+        setInterval(async () => {
+            try {
+                const roomsRef = ref(db, 'rooms');
+                const snapshot = await get(roomsRef);
+                const rooms = snapshot.val() || {};
+
+                const now = Date.now();
+                for (const [roomId, roomData] of Object.entries(rooms)) {
+                    if (now - roomData.meta.createdAt > 300000) { // 5 minutos
+                        if (!roomData.players || Object.keys(roomData.players).length === 0) {
+                            await remove(ref(db, `rooms/${roomId}`));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Limpeza de salas executada');
+            }
+        }, 60000);
+    </script>
+</body>
+</html>
