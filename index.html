@@ -93,6 +93,18 @@
             padding: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Header */
@@ -120,6 +132,14 @@
             align-items: center;
             gap: 15px;
             flex-wrap: wrap;
+        }
+
+        .room-code {
+            background: var(--accent);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
         }
 
         /* Sistema de Salas */
@@ -163,12 +183,14 @@
 
         button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
         }
 
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
 
         button.danger {
@@ -195,6 +217,11 @@
             padding: 12px;
             background: var(--glass);
             border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .player-card:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .player-avatar {
@@ -223,6 +250,23 @@
         .player-role {
             font-size: 12px;
             color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .player-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
         }
 
         /* Área Principal */
@@ -237,6 +281,7 @@
             padding: 15px;
             border-radius: 10px;
             text-align: center;
+            animation: pulse 2s infinite;
         }
 
         .dice-roller {
@@ -250,6 +295,12 @@
             background: var(--glass);
             border: 2px solid rgba(255, 255, 255, 0.2);
             height: 60px;
+            transition: all 0.3s ease;
+        }
+
+        .dice-btn:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
         }
 
         .action-buttons {
@@ -267,6 +318,12 @@
             gap: 8px;
             background: var(--glass);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .action-btn-large:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
         }
 
         .action-icon {
@@ -287,6 +344,18 @@
             padding: 8px;
             border-radius: 6px;
             background: rgba(255, 255, 255, 0.05);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
 
         /* Painel Direito */
@@ -302,7 +371,26 @@
             border-radius: 8px;
             padding: 10px;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .item-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
         }
 
         .item-icon {
@@ -323,6 +411,19 @@
             border-radius: 8px;
             text-align: center;
             margin-top: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        /* Status Effects */
+        .status-effect {
+            display: inline-block;
+            background: var(--warning);
+            color: var(--bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 5px;
+            animation: pulse 1.5s infinite;
         }
 
         /* Responsividade */
@@ -354,6 +455,45 @@
                 grid-template-columns: repeat(4, 1fr);
             }
         }
+
+        @media (max-width: 480px) {
+            .dice-roller {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .inventory-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Animações */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .dice-roll-animation {
+            animation: diceRoll 1s ease-out;
+        }
+
+        @keyframes diceRoll {
+            0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+            50% { transform: rotate(180deg) scale(1.2); opacity: 1; }
+            100% { transform: rotate(360deg) scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -370,6 +510,7 @@
             <div class="room-info">
                 <div id="player-count">Jogadores: 0/6</div>
                 <div id="room-status">Desconectado</div>
+                <div id="room-code-display" class="room-code" style="display: none;">Código: ...</div>
                 <button id="leave-room-btn" class="danger" style="display: none;">Sair da Sala</button>
             </div>
         </header>
@@ -395,16 +536,18 @@
             <div id="room-management" style="display: none;">
                 <h3>👥 Jogadores na Sala</h3>
                 <div class="players-list" id="players-list"></div>
+                
                 <div class="spectator-mode" id="spectator-mode" style="display: none;">
                     <strong>👁️ Modo Visitante</strong>
-                    <p>Aguardando convite para jogar...</p>
+                    <p>Aguardando o Host te convidar para jogar...</p>
                 </div>
             </div>
         </aside>
 
         <main class="panel main-area">
             <div class="weather-event" id="weather-event" style="display: none;">
-                <div id="weather-text">🌞 Dia Ensolarado</div>
+                <div id="weather-text">🌞 Dia 1 - Dia Ensolarado</div>
+                <div id="weather-effect" style="font-size: 12px; opacity: 0.8;"></div>
             </div>
 
             <div class="dice-roller">
@@ -435,7 +578,7 @@
             </div>
 
             <div class="game-log" id="game-log">
-                <div class="log-entry">📝 Bem-vindo ao ULTIMA NOITE!</div>
+                <div class="log-entry">📝 Bem-vindo ao ULTIMA NOITE! Entre em uma sala para começar.</div>
             </div>
         </main>
 
@@ -443,6 +586,7 @@
             <div id="player-info">
                 <h3>🎯 Sua Identidade</h3>
                 <div id="role-display">Aguardando sorteio...</div>
+                <div id="status-effects" style="margin-top: 10px;"></div>
             </div>
 
             <div id="inventory-section">
@@ -454,12 +598,12 @@
                 <h3>👑 Controles do Host</h3>
                 <button id="assign-roles-btn" class="success">🎭 Sortear Identidades</button>
                 <button id="next-turn-btn" class="success">⏭️ Avançar Turno</button>
+                <button id="manage-players-btn">👥 Gerenciar Jogadores</button>
             </div>
         </aside>
     </div>
 
     <script type="module">
-        // Configuração CORRETA do Firebase com URL específica
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
@@ -474,42 +618,164 @@
             measurementId: "G-J8XZBFZH32"
         };
 
-        // Inicializar Firebase com configuração correta
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        console.log('🔥 Firebase configurado com sucesso!');
-        console.log('📡 Conectado ao database:', firebaseConfig.databaseURL);
-
-        // Estado do jogo
         const gameState = {
             roomId: null,
             playerId: null,
             isHost: false,
-            isSpectator: false
+            isSpectator: false,
+            currentRole: null,
+            statusEffects: []
         };
 
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔧 DOM carregado - Iniciando sistema...');
+        // SISTEMA DE CLIMAS E EVENTOS
+        const weatherSystem = {
+            events: [
+                { 
+                    name: "🌞 Dia Ensolarado", 
+                    effect: "Calor intenso - Todos perdem 1 de água por turno",
+                    damage: { type: "sede", value: 1 }
+                },
+                { 
+                    name: "🌧️ Chuva Rara", 
+                    effect: "Água disponível + risco de doenças",
+                    bonus: "Encontre +1 água"
+                },
+                { 
+                    name: "🌬️ Ventania Forte", 
+                    effect: "Dificuldade em explorar - -2 em todos os testes",
+                    penalty: -2
+                },
+                { 
+                    name: "🌫️ Névoa Espessa", 
+                    effect: "Visibilidade reduzida - Chance de se perder",
+                    special: "20% chance de falha automática"
+                },
+                { 
+                    name: "🌡️ Calor Extremo", 
+                    effect: "Desidratação acelerada - -2 de água por turno",
+                    damage: { type: "sede", value: 2 }
+                },
+                { 
+                    name: "❄️ Noite Gelada", 
+                    effect: "Hipotermia - Todos perdem 1 de saúde por turno",
+                    damage: { type: "saude", value: 1 }
+                },
+                { 
+                    name: "⚡ Tempestade de Areia", 
+                    effect: "Impossível explorar - Aguarde passar",
+                    blockActions: true
+                }
+            ],
             
+            getRandomWeather() {
+                return this.events[Math.floor(Math.random() * this.events.length)];
+            },
+            
+            applyWeatherEffects(weather, players) {
+                let messages = [];
+                
+                if (weather.damage) {
+                    Object.keys(players).forEach(playerId => {
+                        if (players[playerId].isPlaying) {
+                            messages.push(`${players[playerId].name} sofre com o clima!`);
+                        }
+                    });
+                }
+                
+                if (weather.blockActions) {
+                    messages.push("❌ Ações bloqueadas pela tempestade!");
+                }
+                
+                return messages;
+            }
+        };
+
+        // SISTEMA DE ITENS COMPLETO
+        const itemSystem = {
+            comum: [
+                { name: "Madeira", emoji: "🪵", chance: 25, type: "recurso" },
+                { name: "Galho", emoji: "🌿", chance: 30, type: "recurso" },
+                { name: "Pedra", emoji: "🪨", chance: 20, type: "recurso" },
+                { name: "Água Suja", emoji: "💧", chance: 15, type: "consumivel" }
+            ],
+            incomum: [
+                { name: "Faca", emoji: "🔪", chance: 8, type: "ferramenta" },
+                { name: "Comida Enlatada", emoji: "🥫", chance: 10, type: "consumivel" },
+                { name: "Corda", emoji: "🪢", chance: 7, type: "recurso" },
+                { name: "Isqueiro", emoji: "🔥", chance: 5, type: "ferramenta" }
+            ],
+            raro: [
+                { name: "Kit Médico", emoji: "💊", chance: 3, type: "consumivel" },
+                { name: "Rádio", emoji: "📻", chance: 2, type: "especial" },
+                { name: "Arma", emoji: "🔫", chance: 1, type: "ferramenta" },
+                { name: "Mapa", emoji: "🗺️", chance: 2, type: "especial" }
+            ],
+            
+            getRandomItem() {
+                const roll = Math.random() * 100;
+                
+                if (roll < 50) return null; // 50% chance de nada
+                if (roll < 80) return this.getRarityItem('comum'); // 30% comum
+                if (roll < 95) return this.getRarityItem('incomum'); // 15% incomum
+                return this.getRarityItem('raro'); // 5% raro
+            },
+            
+            getRarityItem(rarity) {
+                const items = this[rarity];
+                const item = items[Math.floor(Math.random() * items.length)];
+                return Math.random() * 100 <= item.chance ? item : null;
+            }
+        };
+
+        // SISTEMA DE STATUS E EFEITOS
+        const statusSystem = {
+            effects: {
+                envenenado: { 
+                    name: "🐍 Envenenado", 
+                    duration: 3, 
+                    effect: "Perde 1 de saúde por turno",
+                    emoji: "🐍"
+                },
+                fratura: { 
+                    name: "🦴 Fratura", 
+                    duration: 2, 
+                    effect: "-1 em todos os testes",
+                    emoji: "🦴"
+                },
+                sangrando: { 
+                    name: "🩸 Sangrando", 
+                    duration: 2, 
+                    effect: "Perde 1 de saúde por turno",
+                    emoji: "🩸"
+                }
+            },
+            
+            applyEffect(playerId, effectType) {
+                const effect = this.effects[effectType];
+                if (effect) {
+                    addLog(`💀 ${gameState.players[playerId].name} está ${effect.name.toLowerCase()}!`);
+                }
+            }
+        };
+
+        // INICIALIZAÇÃO
+        document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
-                console.log('🎮 Mostrando menu principal');
                 document.getElementById('splash-screen').style.display = 'none';
                 document.getElementById('main-container').style.display = 'grid';
                 initializeEventListeners();
+                startRoomCleanup();
             }, 3000);
         });
 
         function initializeEventListeners() {
-            console.log('🔗 Conectando botões...');
-            
-            // Sistema de salas
             document.getElementById('create-room-btn').addEventListener('click', createRoom);
             document.getElementById('join-room-btn').addEventListener('click', joinRoom);
             document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
 
-            // Dados
             document.querySelectorAll('.dice-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const dice = e.target.dataset.dice;
@@ -517,42 +783,29 @@
                 });
             });
 
-            // Ações
             document.getElementById('explore-btn').addEventListener('click', explore);
             document.getElementById('search-food').addEventListener('click', searchFood);
             document.getElementById('chop-tree').addEventListener('click', chopTree);
-
-            // Controles do host
             document.getElementById('assign-roles-btn').addEventListener('click', assignRoles);
             document.getElementById('next-turn-btn').addEventListener('click', nextTurn);
-
-            console.log('✅ Todos os botões conectados!');
         }
 
-        // FUNÇÃO PRINCIPAL - CRIAR SALA (CORRIGIDA)
+        // SISTEMA DE SALAS CORRIGIDO
         async function createRoom() {
-            console.log('🎯 Botão Criar Sala clicado!');
-            
             const roomName = document.getElementById('new-room-name').value.trim();
             const hostName = document.getElementById('host-name').value.trim();
 
             if (!roomName || !hostName) {
-                addLog('❌ Preencha nome da sala e seu nome!');
+                addLog('❌ Preencha todos os campos!');
                 return;
             }
 
+            const roomId = generateRoomId();
+            
             try {
-                console.log('🚀 Iniciando criação da sala...');
-                
-                // Gerar ID único para a sala
-                const roomId = roomName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString().slice(-4);
-                console.log('📋 ID da sala:', roomId);
-                
                 gameState.roomId = roomId;
                 gameState.isHost = true;
 
-                // 1. Criar metadados da sala
-                console.log('📝 Criando metadados...');
                 await set(ref(db, `rooms/${roomId}/meta`), {
                     name: roomName,
                     host: hostName,
@@ -562,10 +815,8 @@
                     gameStarted: false
                 });
 
-                // 2. Adicionar host como jogador
-                console.log('👤 Adicionando host...');
-                const playerRef = ref(db, `rooms/${roomId}/players/host`);
-                gameState.playerId = 'host';
+                const playerRef = push(ref(db, `rooms/${roomId}/players`));
+                gameState.playerId = playerRef.key;
                 
                 await set(playerRef, {
                     name: hostName,
@@ -573,78 +824,62 @@
                     isHost: true,
                     isPlaying: true,
                     inventory: [],
+                    statusEffects: [],
                     joinedAt: Date.now()
                 });
 
-                // 3. Criar estado inicial do jogo
-                console.log('🎮 Configurando jogo...');
+                const initialWeather = weatherSystem.getRandomWeather();
                 await set(ref(db, `rooms/${roomId}/game`), {
                     turn: 1,
-                    weather: getRandomWeather(),
+                    day: 1,
+                    weather: initialWeather.name,
+                    weatherEffect: initialWeather.effect,
                     phase: 'day',
-                    log: []
+                    log: [`Sala "${roomName}" criada por ${hostName}`]
                 });
 
-                // 4. Atualizar UI
-                console.log('🎨 Atualizando interface...');
-                updateUIForRoom();
-                addLog(`✅ Sala "${roomName}" criada com sucesso!`);
-                addLog(`🔑 ID da sala: ${roomId}`);
-                addLog(`👑 Você é o host da sala`);
-
-                // 5. Iniciar escuta da sala
+                updateUIForRoom(roomId);
+                addLog(`✅ Sala "${roomName}" criada!`);
+                addLog(`🔑 Código da sala: ${roomId}`);
+                addLog(`👑 Você é o host - Controle o jogo!`);
                 startListeningToRoom();
 
-                console.log('🎉 Sala criada com sucesso!');
-
             } catch (error) {
-                console.error('💥 ERRO ao criar sala:', error);
-                addLog('❌ Erro ao criar sala. Verifique o console (F12)');
+                console.error('Erro ao criar sala:', error);
+                addLog('❌ Erro ao criar sala.');
             }
         }
 
         async function joinRoom() {
-            console.log('🎯 Botão Entrar na Sala clicado!');
-            
             const roomId = document.getElementById('room-id').value.trim();
             const playerName = document.getElementById('player-name').value.trim();
 
             if (!roomId || !playerName) {
-                addLog('❌ Preencha ID da sala e seu nome!');
+                addLog('❌ Preencha todos os campos!');
                 return;
             }
 
             try {
-                console.log('🔍 Verificando sala...');
-                
-                // Verificar se a sala existe
                 const roomRef = ref(db, `rooms/${roomId}`);
                 const snapshot = await get(roomRef);
 
                 if (!snapshot.exists()) {
-                    addLog('❌ Sala não encontrada! Verifique o ID.');
+                    addLog('❌ Sala não encontrada!');
                     return;
                 }
 
                 const roomData = snapshot.val();
                 const currentPlayers = Object.keys(roomData.players || {}).length;
 
-                // Verificar se sala está cheia
-                if (currentPlayers >= 6) {
+                if (currentPlayers >= roomData.meta.maxPlayers) {
                     gameState.isSpectator = true;
-                    addLog('👁️ Sala cheia! Entrando como espectador...');
+                    addLog('👁️ Entrando como espectador (sala cheia)...');
                 }
 
                 gameState.roomId = roomId;
 
-                console.log('👤 Adicionando jogador...');
-                
-                // Gerar ID único para o jogador
-                const playerId = 'player_' + Date.now();
-                gameState.playerId = playerId;
-                
-                // Adicionar jogador
-                const playerRef = ref(db, `rooms/${roomId}/players/${playerId}`);
+                const playerRef = push(ref(db, `rooms/${roomId}/players`));
+                gameState.playerId = playerRef.key;
                 
                 await set(playerRef, {
                     name: playerName,
@@ -652,28 +887,29 @@
                     isHost: false,
                     isPlaying: !gameState.isSpectator,
                     inventory: [],
+                    statusEffects: [],
                     joinedAt: Date.now()
                 });
 
-                // Atualizar contador
                 await update(ref(db, `rooms/${roomId}/meta`), {
                     playerCount: currentPlayers + 1
                 });
 
-                updateUIForRoom();
+                updateUIForRoom(roomId);
                 addLog(`✅ Entrou na sala como ${playerName}`);
                 startListeningToRoom();
 
             } catch (error) {
-                console.error('💥 ERRO ao entrar na sala:', error);
                 addLog('❌ Erro ao entrar na sala.');
             }
         }
 
-        function updateUIForRoom() {
+        function updateUIForRoom(roomId) {
             document.getElementById('room-system').style.display = 'none';
             document.getElementById('room-management').style.display = 'block';
             document.getElementById('leave-room-btn').style.display = 'block';
+            document.getElementById('room-code-display').style.display = 'block';
+            document.getElementById('room-code-display').textContent = `Código: ${roomId}`;
             
             if (gameState.isHost) {
                 document.getElementById('host-controls').style.display = 'block';
@@ -688,19 +924,13 @@
         }
 
         function startListeningToRoom() {
-            console.log('👂 Iniciando escuta da sala...');
-            
-            // Escutar jogadores
             onValue(ref(db, `rooms/${gameState.roomId}/players`), (snapshot) => {
                 const players = snapshot.val() || {};
-                console.log('👥 Jogadores atualizados:', players);
                 updatePlayersList(players);
             });
 
-            // Escutar estado do jogo
             onValue(ref(db, `rooms/${gameState.roomId}/game`), (snapshot) => {
                 const game = snapshot.val() || {};
-                console.log('🎮 Estado do jogo atualizado:', game);
                 updateGameState(game);
             });
         }
@@ -713,6 +943,10 @@
                 const playerElement = document.createElement('div');
                 playerElement.className = 'player-card';
                 
+                const statusEffects = player.statusEffects || [];
+                const statusDisplay = statusEffects.length > 0 ? 
+                    statusEffects.map(effect => `<span class="status-effect">${effect.emoji}</span>`).join('') : '';
+
                 playerElement.innerHTML = `
                     <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
                     <div class="player-info">
@@ -720,38 +954,85 @@
                             ${player.name}
                             ${player.isHost ? '👑' : ''}
                             ${id === gameState.playerId ? ' (Você)' : ''}
+                            ${statusDisplay}
                         </div>
                         <div class="player-role">${getRoleDisplay(player.role)}</div>
+                    </div>
+                    <div class="player-actions">
+                        ${gameState.isHost && !player.isHost ? `
+                            <button class="action-btn" onclick="kickPlayer('${id}')">🚫</button>
+                            ${player.role === 'spectator' ? `
+                                <button class="action-btn" onclick="inviteToGame('${id}')">🎮</button>
+                            ` : ''}
+                        ` : ''}
+                        <button class="action-btn" onclick="toggleMute('${id}')">🎤</button>
                     </div>
                 `;
 
                 list.appendChild(playerElement);
             });
 
-            const playerCount = Object.keys(players).length;
-            document.getElementById('player-count').textContent = `Jogadores: ${playerCount}/6`;
+            document.getElementById('player-count').textContent = 
+                `Jogadores: ${Object.keys(players).length}/6`;
         }
 
         function updateGameState(game) {
             if (game.weather) {
                 document.getElementById('weather-event').style.display = 'block';
-                document.getElementById('weather-text').textContent = game.weather;
+                document.getElementById('weather-text').textContent = `🌞 Dia ${game.day || 1} - ${game.weather}`;
+                document.getElementById('weather-effect').textContent = game.weatherEffect || '';
+            }
+
+            if (game.roles && gameState.playerId) {
+                const playerRole = game.roles[gameState.playerId];
+                if (playerRole && playerRole !== gameState.currentRole) {
+                    gameState.currentRole = playerRole;
+                    const roleDisplay = document.getElementById('role-display');
+                    roleDisplay.textContent = `🎭 ${getRoleDisplay(playerRole)}`;
+                    roleDisplay.classList.add('pulse');
+                    
+                    // Mensagem secreta apenas para o jogador
+                    if (playerRole === 'assassin') {
+                        addLog('🔪 VOCÊ É O ASSASSINO! Elimine os outros sem ser descoberto!', true);
+                    } else if (playerRole === 'survivor') {
+                        addLog('😊 Você é um Sobrevivente! Encontre o assassino!', true);
+                    }
+                    
+                    setTimeout(() => roleDisplay.classList.remove('pulse'), 2000);
+                }
             }
         }
 
-        // SISTEMA DE AÇÕES
+        // SISTEMA DE AÇÕES COMPLETO
         async function explore() {
             const roll = rollDice(20);
             addLog(`🔍 Vasculhando... Rolou ${roll} no D20`);
 
-            if (roll <= 8) {
-                addLog('🕷️ Oops! Encontrou algumas aranhas mas nada de importante...');
+            if (roll <= 10) {
+                const messages = [
+                    '🕷️ Oops! Você encontrou algumas aranhas mas nada de importante...',
+                    '🤔 Hmm... Nada interessante por aqui. Continue procurando!',
+                    '🏜️ Só areia e mais areia... nada útil.',
+                    '🌵 Alguns cactos, mas nada aproveitável.',
+                    '💨 O vento levou tudo que poderia ser útil...'
+                ];
+                addLog(messages[Math.floor(Math.random() * messages.length)]);
             } else if (roll <= 15) {
-                addLog('🤔 Hmm... Nada interessante por aqui. Continue procurando!');
+                const item = itemSystem.getRandomItem();
+                if (item) {
+                    addLog(`🎉 Encontrou: ${item.emoji} ${item.name}!`);
+                    await addItemToInventory(item);
+                } else {
+                    addLog('💨 Quase encontrou algo, mas o vento levou...');
+                }
             } else {
-                const item = getRandomItem('comum');
-                addLog(`🎉 Encontrou: ${item.emoji} ${item.name}!`);
-                await addItemToInventory(item);
+                const item = itemSystem.getRandomItem();
+                if (item) {
+                    addLog(`💎 Achado especial: ${item.emoji} ${item.name}!`);
+                    await addItemToInventory(item);
+                } else {
+                    addLog('✨ Vi algo brilhando, mas era só miragem...');
+                }
             }
         }
 
@@ -759,15 +1040,22 @@
             const roll = rollDice(8);
             addLog(`🍖 Procurando comida... Rolou ${roll} no D8`);
 
-            if (roll <= 3) {
-                addLog('🐍 Encontrou uma cobra! Rolou D4 para dano...');
-                const damage = rollDice(4);
-                addLog(`💔 Tomou ${damage} de dano da cobra!`);
-            } else if (roll <= 6) {
-                addLog('🌵 Só encontrou cactos... nada comestível.');
+            if (roll <= 2) {
+                // Evento raro de envenenamento (apenas 25% chance)
+                if (Math.random() < 0.25) {
+                    addLog('🐍 Uma cobra venenosa te picou! Você está envenenado!');
+                    await applyStatusEffect('envenenado');
+                } else {
+                    addLog('🌵 Espinhos! Rolou D2 para dano...');
+                    const damage = rollDice(2);
+                    addLog(`💔 Machucou-se! ${damage} de dano.`);
+                }
+            } else if (roll <= 5) {
+                addLog('🏜️ Só encontrou cactos... nada comestível.');
             } else {
-                addLog(`🍽️ Encontrou comida!`);
-                await addItemToInventory({ name: "Comida", emoji: "🍖" });
+                const item = { name: "Comida Enlatada", emoji: "🥫", type: "consumivel" };
+                addLog(`🍽️ Encontrou comida: ${item.emoji} ${item.name}!`);
+                await addItemToInventory(item);
             }
         }
 
@@ -776,64 +1064,131 @@
             addLog(`🪓 Espancando árvore... Rolou ${roll} no D8`);
 
             if (roll <= 2) {
-                addLog('💢 A árvore revida! Rolou D4 para dano...');
-                const damage = rollDice(4);
+                addLog('💢 A árvore revida! Rolou D2 para dano...');
+                const damage = rollDice(2);
                 addLog(`🩸 Machucou a mão! ${damage} de dano.`);
+                
+                // Chance de fratura
+                if (damage === 2 && Math.random() < 0.3) {
+                    addLog('🦴 Fratura detectada! Você está com a mão quebrada!');
+                    await applyStatusEffect('fratura');
+                }
             } else if (roll <= 4) {
                 addLog('🌿 Caiu apenas um galho seco...');
-                await addItemToInventory({ name: "Galho", emoji: "🌿" });
+                await addItemToInventory({ name: "Galho", emoji: "🌿", type: "recurso" });
             } else {
                 addLog('🎯 Madeira obtida com sucesso!');
-                await addItemToInventory({ name: "Madeira", emoji: "🪵" });
+                await addItemToInventory({ name: "Madeira", emoji: "🪵", type: "recurso" });
             }
         }
 
-        function rollDice(sides) {
-            const result = Math.floor(Math.random() * sides) + 1;
-            addLog(`🎲 Rolou D${sides}: ${result}`);
-            return result;
+        // SISTEMA DE TURNOS E CLIMAS
+        async function nextTurn() {
+            if (!gameState.isHost) return;
+
+            const gameRef = ref(db, `rooms/${gameState.roomId}/game`);
+            const snapshot = await get(gameRef);
+            const game = snapshot.exists() ? snapshot.val() : { turn: 1, day: 1 };
+
+            const newTurn = game.turn + 1;
+            const newDay = newTurn % 3 === 0 ? (game.day || 1) + 1 : (game.day || 1);
+            
+            const newWeather = weatherSystem.getRandomWeather();
+            
+            await update(gameRef, {
+                turn: newTurn,
+                day: newDay,
+                weather: newWeather.name,
+                weatherEffect: newWeather.effect,
+                phase: newTurn % 2 === 0 ? 'night' : 'day'
+            });
+
+            addLog(`⏭️ Dia ${newDay} - Turno ${newTurn} iniciado`);
+            addLog(`🌤️ Clima: ${newWeather.name}`);
+            addLog(`📋 Efeito: ${newWeather.effect}`);
+
+            // Aplicar efeitos do clima
+            const playersRef = ref(db, `rooms/${gameState.roomId}/players`);
+            const playersSnap = await get(playersRef);
+            const players = playersSnap.val() || {};
+            
+            weatherSystem.applyWeatherEffects(newWeather, players).forEach(msg => addLog(msg));
+        }
+
+        // SISTEMA DE IDENTIDADES
+        async function assignRoles() {
+            if (!gameState.isHost) return;
+
+            const playersRef = ref(db, `rooms/${gameState.roomId}/players`);
+            const snapshot = await get(playersRef);
+            const players = snapshot.val() || {};
+
+            const playingPlayers = Object.entries(players).filter(([id, player]) => 
+                player.isPlaying && !player.isHost
+            );
+
+            if (playingPlayers.length < 2) {
+                addLog('❌ Precisa de pelo menos 2 jogadores para sortear roles!');
+                return;
+            }
+
+            // Sempre 1 assassino independente do número de jogadores
+            const assassinIndex = Math.floor(Math.random() * playingPlayers.length);
+            const roles = {};
+
+            playingPlayers.forEach(([id, player], index) => {
+                roles[id] = index === assassinIndex ? 'assassin' : 'survivor';
+            });
+
+            await update(ref(db, `rooms/${gameState.roomId}/game`), {
+                roles: roles,
+                gameStarted: true
+            });
+
+            addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
+            addLog('🔒 As identidades foram reveladas secretamente para cada jogador');
         }
 
         // FUNÇÕES AUXILIARES
-        function getRandomWeather() {
-            const events = [
-                "🌞 Dia Ensolarado - Calor Intenso",
-                "🌧️ Chuva Forte - Risco de Enchentes", 
-                "🌬️ Ventania - Dificuldade em Explorar",
-                "🌫️ Névoa Espessa - Visibilidade Reduzida"
-            ];
-            return events[Math.floor(Math.random() * events.length)];
-        }
-
-        function getRandomItem(rarity) {
-            const items = {
-                comum: [
-                    { name: "Madeira", emoji: "🪵" },
-                    { name: "Galho", emoji: "🌿" },
-                    { name: "Pedra", emoji: "🪨" }
-                ]
-            };
-            const itemList = items[rarity] || items.comum;
-            return itemList[Math.floor(Math.random() * itemList.length)];
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
         function getRoleDisplay(role) {
             const roles = {
                 'host': '👑 Host',
-                'survivor': '😊 Sobrevivente', 
+                'survivor': '😊 Sobrevivente',
                 'assassin': '🔪 Assassino',
                 'spectator': '👁️ Espectador'
             };
             return roles[role] || role;
         }
 
-        function addLog(message) {
-            const log = document.getElementById('game-log');
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            entry.textContent = message;
-            log.appendChild(entry);
-            log.scrollTop = log.scrollHeight;
+        function addLog(message, isPrivate = false) {
+            if (isPrivate) {
+                // Mensagem privada - apenas adiciona localmente
+                const log = document.getElementById('game-log');
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.style.background = 'rgba(255, 107, 53, 0.1)';
+                entry.style.border = '1px solid var(--accent)';
+                entry.textContent = `🔒 ${message}`;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            } else {
+                // Mensagem pública - salva no Firebase
+                const log = document.getElementById('game-log');
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = message;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+
+                if (gameState.roomId) {
+                    const logRef = ref(db, `rooms/${gameState.roomId}/game/log`);
+                    push(logRef, message);
+                }
+            }
         }
 
         async function addItemToInventory(item) {
@@ -848,11 +1203,32 @@
             updateInventoryDisplay(inventory);
         }
 
+        async function applyStatusEffect(effectType) {
+            if (!gameState.roomId || !gameState.playerId) return;
+
+            const playerRef = ref(db, `rooms/${gameState.roomId}/players/${gameState.playerId}/statusEffects`);
+            const snapshot = await get(playerRef);
+            const effects = snapshot.exists() ? snapshot.val() : [];
+            
+            const effect = statusSystem.effects[effectType];
+            if (effect) {
+                effects.push({
+                    type: effectType,
+                    name: effect.name,
+                    emoji: effect.emoji,
+                    duration: effect.duration,
+                    appliedAt: Date.now()
+                });
+                
+                await set(playerRef, effects);
+            }
+        }
+
         function updateInventoryDisplay(inventory) {
             const grid = document.getElementById('inventory-grid');
             grid.innerHTML = '';
 
-            inventory.forEach(item => {
+            inventory.forEach((item, index) => {
                 const itemElement = document.createElement('div');
                 itemElement.className = 'item-card';
                 itemElement.innerHTML = `
@@ -863,18 +1239,61 @@
             });
         }
 
-        // CONTROLES DO HOST
-        async function assignRoles() {
-            if (!gameState.isHost) return;
+        function rollDice(sides) {
+            const result = Math.floor(Math.random() * sides) + 1;
+            const diceBtn = document.querySelector(`[data-dice="${sides}"]`);
+            
+            if (diceBtn) {
+                diceBtn.classList.add('dice-roll-animation');
+                setTimeout(() => diceBtn.classList.remove('dice-roll-animation'), 1000);
+            }
 
-            addLog('🎭 Sortear papéis em desenvolvimento...');
+            addLog(`🎲 Rolou D${sides}: ${result}`);
+            return result;
         }
 
-        async function nextTurn() {
-            if (!gameState.isHost) return;
+        // LIMPEZA DE SALAS
+        function startRoomCleanup() {
+            setInterval(async () => {
+                try {
+                    const roomsRef = ref(db, 'rooms');
+                    const snapshot = await get(roomsRef);
+                    const rooms = snapshot.val() || {};
 
-            addLog('⏭️ Avançar turno em desenvolvimento...');
+                    const now = Date.now();
+                    for (const [roomId, roomData] of Object.entries(rooms)) {
+                        if (now - roomData.meta.createdAt > 300000) { // 5 minutos
+                            if (!roomData.players || Object.keys(roomData.players).length === 0) {
+                                await remove(ref(db, `rooms/${roomId}`));
+                                console.log(`Sala ${roomId} removida por inatividade`);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log('Limpeza de salas executada');
+                }
+            }, 60000);
         }
+
+        // FUNÇÕES GLOBAIS
+        window.kickPlayer = async (playerId) => {
+            if (!gameState.isHost) return;
+            await remove(ref(db, `rooms/${gameState.roomId}/players/${playerId}`));
+            addLog('🚫 Jogador removido da sala');
+        };
+
+        window.inviteToGame = async (playerId) => {
+            if (!gameState.isHost) return;
+            await update(ref(db, `rooms/${gameState.roomId}/players/${playerId}`), {
+                isPlaying: true,
+                role: 'survivor'
+            });
+            addLog('🎮 Jogador convidado para o jogo');
+        };
+
+        window.toggleMute = (playerId) => {
+            addLog('🎤 Controle de áudio (funcionalidade de voz)');
+        };
 
         async function leaveRoom() {
             if (gameState.roomId && gameState.playerId) {
@@ -895,6 +1314,7 @@
             document.getElementById('leave-room-btn').style.display = 'none';
             document.getElementById('host-controls').style.display = 'none';
             document.getElementById('spectator-mode').style.display = 'none';
+            document.getElementById('room-code-display').style.display = 'none';
             
             document.querySelectorAll('.action-btn-large').forEach(btn => {
                 btn.disabled = false;
