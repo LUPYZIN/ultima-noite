@@ -407,113 +407,649 @@ function updateUIForRoomJoined(roomName, roomId){
 function resetUI(){
   local.roomId = null;
   local.playerName = null;
-  local.playerKey = null;
-  local.isHost = false;
-  
-  document.getElementById('roomInfo').style.display = 'none';
-  document.getElementById('metaLabel').innerText = 'Desconectado';
-  document.getElementById('playersList').innerHTML = '<div style="text-align:center; color:var(--muted); padding:20px">Nenhum jogador na sala</div>';
-  document.getElementById('playerCount').textContent = '(0)';
-  document.getElementById('systemStatus').innerHTML = 'Aguardando conexão com a sala...';
-  document.getElementById('inventory').innerHTML = 'Entre em uma sala para ver inventário';
-  
-  // Desativar controles
-  document.getElementById('startGameBtn').disabled = true;
-  document.getElementById('exploreTree').disabled = true;
-  document.getElementById('exploreWorkshop').disabled = true;
-  document.getElementById('exploreKitchen').disabled = true;
-  document.getElementById('interactNPC').disabled = true;
-  document.getElementById('narrInput').disabled = true;
-  document.getElementById('narrBtn').disabled = true;
-  document.getElementById('advanceTurn').disabled = true;
-  document.getElementById('revealBtn').disabled = true;
-  
-  document.getElementById('narrInput').placeholder = "Entre em uma sala para usar os comandos";
-}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTIMA NOITE - MENU</title>
+    <style>
+        :root {
+            --bg: #0a0e14;
+            --panel: #1a1f2e;
+            --muted: #8b9bb5;
+            --accent: #ff6b35;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --glass: rgba(255, 255, 255, 0.05);
+            --text: #e4f0fb;
+        }
 
-/* ===== ROOM LISTENING ===== */
-async function startListeningRoom(roomId){
-  // players list
-  onValue(ref(db, `rooms/${roomId}/players`), (snap)=>{
-    const data = snap.val() || {};
-    renderPlayersFromData(data);
-    updatePlayerCount(data);
-  });
-  
-  // room state
-  onValue(ref(db, `rooms/${roomId}/state`), (snap)=>{
-    const data = snap.val() || {};
-    if(data.day) document.getElementById('day').innerText = data.day;
-    if(data.cycle) document.getElementById('cycle').innerText = data.cycle;
-    if(data.log && data.log !== document.getElementById('log').textContent) {
-      document.getElementById('log').innerHTML = data.log.split('\n').map(line => 
-        `<div style="margin-bottom:6px">${line}</div>`
-      ).join('');
-    }
-  });
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-function updatePlayerCount(playersObj){
-  const count = Object.keys(playersObj).length;
-  document.getElementById('playerCount').textContent = `(${count})`;
-}
+        body {
+            background: linear-gradient(135deg, var(--bg) 0%, #151a28 100%);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-function renderPlayersFromData(playersObj){
-  const el = document.getElementById('playersList'); 
-  const count = Object.keys(playersObj).length;
-  
-  if(count === 0) {
-    el.innerHTML = '<div style="text-align:center; color:var(--muted); padding:20px">Nenhum jogador na sala</div>';
-    return;
-  }
-  
-  el.innerHTML = '';
-  
-  Object.entries(playersObj).forEach(([key, p])=>{
-    const div=document.createElement('div'); 
-    div.className='player';
-    
-    const hostBadge = p.isHost ? '<span style="color:var(--accent); font-size:10px; background:rgba(255,107,53,0.2); padding:2px 6px; border-radius:4px; margin-left:4px">HOST</span>' : '';
-    const youBadge = key === local.playerKey ? '<span style="color:var(--good); font-size:10px; background:rgba(59,209,122,0.2); padding:2px 6px; border-radius:4px; margin-left:4px">VOCÊ</span>' : '';
-    
-    div.innerHTML = `
-      <div style="width:36px;height:36px;border-radius:6px;background:linear-gradient(180deg,#0f1620,#0b1220);display:flex;align-items:center;justify-content:center;font-weight:700; font-size:14px">
-        ${(p.name||'P')[0].toUpperCase()}
-      </div>
-      <div style="flex:1">
-        <div style="display:flex; align-items:center; gap:4px">
-          <strong>${p.name}</strong> ${hostBadge} ${youBadge}
-        </div>
-        <div style="color:var(--muted);font-size:11px">
-          Energia: ${p.energia||0} | Fome: ${p.fome||0} | Sede: ${p.sede||0}
-        </div>
-      </div>`;
-    
-    el.appendChild(div);
-  });
-}
+        /* Animação de entrada */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeOut 1s ease-in-out 3s forwards;
+        }
 
-// Botão reset local
-document.getElementById('resetBtn').addEventListener('click', ()=>{
-  if(confirm('Recarregar a página? Você será desconectado da sala.')){
-    location.reload();
-  }
-});
+        .title-animation {
+            font-size: 4rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            background: linear-gradient(45deg, var(--accent), var(--danger));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glitch 2s infinite, pulse 2s infinite;
+            text-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
+        }
 
-// Inicialização
-appendLog('🔄 Sistema carregado com sucesso!');
-appendLog('💡 <strong>Para criar uma sala:</strong> Digite um nome e clique em "Criar Sala"');
-appendLog('💡 <strong>Para entrar em uma sala:</strong> Peça o ID para o host e clique em "Entrar na Sala"');
+        .subtitle {
+            margin-top: 1rem;
+            color: var(--muted);
+            font-size: 1.2rem;
+            animation: fadeIn 2s ease-in-out;
+        }
 
-// Cleanup
-window.addEventListener('beforeunload', async ()=>{
-  try{
-    if(local.roomId && local.playerKey){
-      await remove(ref(db, `rooms/${local.roomId}/players/${local.playerKey}`));
-    }
-  }catch(e){ /* ignore */ }
-});
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+        }
 
-</script>
-</body>
-</html>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; visibility: hidden; }
+        }
+
+        /* Layout Principal */
+        .container {
+            display: none;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+            grid-template-columns: 300px 1fr 350px;
+            grid-template-rows: auto 1fr;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: var(--panel);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .game-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .room-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Sistema de Salas */
+        .room-system {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        input, button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        button.danger {
+            background: var(--danger);
+        }
+
+        button.success {
+            background: var(--success);
+        }
+
+        /* Lista de Jogadores */
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .player-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--glass);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .player-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--accent), var(--danger));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .player-role {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .player-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        /* Área Principal */
+        .main-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .weather-event {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        .dice-roller {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .dice-btn {
+            background: var(--glass);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .dice-btn:hover {
+            border-color: var(--accent);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .action-btn-large {
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .action-icon {
+            font-size: 24px;
+        }
+
+        .game-log {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 300px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Painel Direito */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .item-card {
+            background: var(--glass);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .item-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+
+        .item-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .item-name {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* Modo Visitante */
+        .spectator-mode {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--danger);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Responsividade */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dice-roller {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .inventory-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* Animações extras */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Rolagem de dados */
+        .dice-roll-animation {
+            animation: diceRoll 1s ease-out;
+        }
+
+        @keyframes diceRoll {
+            0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+            50% { transform: rotate(180deg) scale(1.2); opacity: 1; }
+            100% { transform: rotate(360deg) scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela de Abertura -->
+    <div id="splash-screen">
+        <div class="title-animation">ULTIMA NOITE</div>
+        <div class="subtitle">O RPG de Sobrevivência no Deserto</div>
+    </div>
+
+    <!-- Interface Principal -->
+    <div class="container" id="main-container">
+        <!-- Header -->
+        <header class="header panel">
+            <div class="game-title">ULTIMA NOITE - MENU</div>
+            <div class="room-info">
+                <div id="player-count">Jogadores: 0/6</div>
+                <div id="room-status">Desconectado</div>
+                <button id="leave-room-btn" class="danger" style="display: none;">Sair da Sala</button>
+            </div>
+        </header>
+
+        <!-- Painel Esquerdo - Sistema de Salas e Jogadores -->
+        <aside class="panel">
+            <div class="room-system" id="room-system">
+                <h3>🔄 Sistema de Salas</h3>
+                <div class="input-group">
+                    <label>Criar Nova Sala:</label>
+                    <input type="text" id="new-room-name" placeholder="Nome da sala">
+                    <input type="text" id="host-name" placeholder="Seu nome">
+                    <button id="create-room-btn" class="success">🎮 Criar Sala</button>
+                </div>
+                
+                <div class="input-group">
+                    <label>Entrar em Sala:</label>
+                    <input type="text" id="room-id" placeholder="ID da sala">
+                    <input type="text" id="player-name" placeholder="Seu nome">
+                    <button id="join-room-btn">🚪 Entrar na Sala</button>
+                </div>
+            </div>
+
+            <div id="room-management" style="display: none;">
+                <h3>👥 Jogadores na Sala</h3>
+                <div class="players-list" id="players-list">
+                    <!-- Jogadores aparecerão aqui -->
+                </div>
+                
+                <div class="spectator-mode" id="spectator-mode" style="display: none;">
+                    <strong>👁️ Modo Visitante</strong>
+                    <p>Aguardando o Host te convidar para jogar...</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Área Central - Ações e Log -->
+        <main class="panel main-area">
+            <div class="weather-event" id="weather-event" style="display: none;">
+                <div id="weather-text">🌞 Dia Ensolarado - Calor Intenso</div>
+            </div>
+
+            <div class="dice-roller">
+                <button class="dice-btn" data-dice="2">🎲 D2</button>
+                <button class="dice-btn" data-dice="4">🎲 D4</button>
+                <button class="dice-btn" data-dice="6">🎲 D6</button>
+                <button class="dice-btn" data-dice="8">🎲 D8</button>
+                <button class="dice-btn" data-dice="20">🎲 D20</button>
+                <button class="dice-btn" id="custom-dice">🎲 Personalizado</button>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn-large" id="explore-random">
+                    <div class="action-icon">🔍</div>
+                    <div>Vasculhar Aleatório</div>
+                </button>
+                <button class="action-btn-large" id="search-food">
+                    <div class="action-icon">🍖</div>
+                    <div>Procurar Comida</div>
+                </button>
+                <button class="action-btn-large" id="chop-tree">
+                    <div class="action-icon">🪓</div>
+                    <div>Espancar Árvore</div>
+                </button>
+                <button class="action-btn-large" id="use-item">
+                    <div class="action-icon">💊</div>
+                    <div>Usar Item</div>
+                </button>
+            </div>
+
+            <div class="game-log" id="game-log">
+                <div class="log-entry">📝 Bem-vindo ao ULTIMA NOITE! Entre em uma sala para começar.</div>
+            </div>
+        </main>
+
+        <!-- Painel Direito - Inventário e Controles -->
+        <aside class="panel">
+            <div id="player-info">
+                <h3>🎯 Sua Identidade</h3>
+                <div id="role-display">Aguardando sorteio...</div>
+            </div>
+
+            <div id="inventory-section">
+                <h3>🎒 Seu Inventário</h3>
+                <div class="inventory-grid" id="inventory-grid">
+                    <!-- Itens aparecerão aqui -->
+                </div>
+            </div>
+
+            <div id="host-controls" style="display: none;">
+                <h3>👑 Controles do Host</h3>
+                <button id="assign-roles-btn" class="success">🎭 Sortear Identidades</button>
+                <button id="next-turn-btn" class="success">⏭️ Avançar Turno</button>
+                <button id="manage-players-btn">👥 Gerenciar Jogadores</button>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
+            authDomain: "ultima-noite-f2867.firebaseapp.com",
+            projectId: "ultima-noite-f2867",
+            storageBucket: "ultima-noite-f2867.firebasestorage.app",
+            messagingSenderId: "553820660993",
+            appId: "1:553820660993:web:cb1019cc2361a54e4c6700",
+            measurementId: "G-J8XZBFZH32"
+        };
+
+        const DATABASE_URL = "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app";
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app, DATABASE_URL);
+
+        // Estado do jogo
+        const gameState = {
+            roomId: null,
+            playerId: null,
+            isHost: false,
+            isSpectator: false,
+            currentRole: null
+        };
+
+        // Itens do jogo com raridade
+        const gameItems = {
+            comum: [
+                { name: "Madeira", emoji: "🪵", chance: 30 },
+                { name: "Galho", emoji: "🌿", chance: 40 },
+                { name: "Pedra", emoji: "🪨", chance: 35 },
+                { name: "Água Suja", emoji: "💧", chance: 25 }
+            ],
+            incomum: [
+                { name: "Faca", emoji: "🔪", chance: 15 },
+                { name: "Comida Enlatada", emoji: "🥫", chance: 12 },
+                { name: "Corda", emoji: "🪢", chance: 10 },
+                { name: "Isqueiro", emoji: "🔥", chance: 8 }
+            ],
+            raro: [
+                { name: "Kit Médico", emoji: "💊", chance: 5 },
+                { name: "Rádio", emoji: "📻", chance: 3 },
+                { name: "Arma", emoji: "🔫", chance: 2 },
+                { name: "Mapa", emoji: "🗺️", chance: 4 }
+            ]
+        };
+
+        // Eventos climáticos
+        const weatherEvents = [
+            { name: "🌞 Dia Ensolarado", effect: "Calor intenso - +1 de sede por turno" },
+            { name: "🌧️ Chuva Forte", effect: "Água disponível + risco de hipotermia" },
+            { name: "🌬️ Ventania", effect: "Dificuldade em acender fogueiras" },
+            { name: "🌫️ Névoa Espessa", effect: "Visibilidade reduzida - penalidade em exploração" },
+            { name: "🌡️ Calor Extremo", effect: "Desidratação acelerada" },
+            { name: "❄️ Frio Noturno", effect: "Risco de hipotermia à noite" }
+        ];
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.display = 'none';
+                document.getElementById('main-container').style.display = 'grid';
+            }, 4000);
+
+            initializeEventListeners();
+            startRoomCleanup();
+        });
+
+        function initializeEventListeners() {
+            // Sistema de salas
+            document.getElementById('create-room-btn').addEventListener('click', createRoom);
+            document.getElementById('join-room-btn').addEventListener('click', joinRoom);
+            document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
+
+            // Dados
+            document.querySelectorAll('.dice-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const dice = e.target.dataset.dice;
+                    if (dice) rollDice(parse
