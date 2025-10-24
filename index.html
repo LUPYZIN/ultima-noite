@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ULTIMA NOITE - MENU</title>
+    <title>ULTIMA NOITE - RPG</title>
     <style>
         :root {
             --bg: #0a0e14;
@@ -29,10 +29,9 @@
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
-            padding: 20px;
         }
 
-        /* Animação de entrada CORRIGIDA */
+        /* Animação de entrada */
         #splash-screen {
             position: fixed;
             top: 0;
@@ -77,7 +76,7 @@
             to { opacity: 1; }
         }
 
-        /* Layout Principal CORRIGIDO */
+        /* Layout Principal */
         .container {
             display: none;
             max-width: 1400px;
@@ -86,7 +85,7 @@
             gap: 20px;
             grid-template-columns: 300px 1fr 350px;
             grid-template-rows: auto 1fr;
-            min-height: calc(100vh - 40px);
+            min-height: 100vh;
         }
 
         .panel {
@@ -446,30 +445,20 @@
         }
 
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
             .container {
                 grid-template-columns: 1fr;
                 padding: 10px;
-                gap: 15px;
             }
-            
             .header {
                 flex-direction: column;
                 text-align: center;
-                gap: 10px;
             }
-            
             .dice-roller {
                 grid-template-columns: repeat(3, 1fr);
             }
-            
             .action-buttons {
                 grid-template-columns: 1fr;
             }
-            
             .inventory-grid {
                 grid-template-columns: repeat(4, 1fr);
             }
@@ -479,18 +468,8 @@
             .dice-roller {
                 grid-template-columns: repeat(2, 1fr);
             }
-            
             .inventory-grid {
                 grid-template-columns: repeat(3, 1fr);
-            }
-            
-            .player-card {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .player-actions {
-                justify-content: center;
             }
         }
     </style>
@@ -635,9 +614,921 @@
     </div>
 
     <script type="module">
-        // ... (o JavaScript permanece EXATAMENTE o mesmo do código anterior)
-        // Não alterei o JavaScript pois o problema era apenas no CSS
-        // O código JavaScript completo está funcionando corretamente
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
+            authDomain: "ultima-noite-f2867.firebaseapp.com",
+            databaseURL: "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ultima-noite-f2867",
+            storageBucket: "ultima-noite-f2867.firebasestorage.app",
+            messagingSenderId: "553820660993",
+            appId: "1:553820660993:web:cb1019cc2361a54e4c6700",
+            measurementId: "G-J8XZBFZH32"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const gameState = {
+            roomId: null,
+            playerId: null,
+            isHost: false,
+            isSpectator: false,
+            currentRole: null,
+            usedNames: new Set()
+        };
+
+        // SISTEMA DE ITENS EXPANDIDO
+        const itemSystem = {
+            comum: [
+                { name: "Madeira", emoji: "🪵", chance: 25, type: "material" },
+                { name: "Galho", emoji: "🌿", chance: 30, type: "material" },
+                { name: "Pedra", emoji: "🪨", chance: 20, type: "material" },
+                { name: "Água Suja", emoji: "💧", chance: 15, type: "consumable" }
+            ],
+            incomum: [
+                { name: "Faca Enferrujada", emoji: "🔪", chance: 8, type: "weapon" },
+                { name: "Comida Enlatada", emoji: "🥫", chance: 10, type: "food" },
+                { name: "Corda", emoji: "🪢", chance: 7, type: "material" },
+                { name: "Isqueiro", emoji: "🔥", chance: 5, type: "tool" },
+                { name: "Machado Velho", emoji: "🪓", chance: 6, type: "tool" }
+            ],
+            raro: [
+                { name: "Kit Médico", emoji: "💊", chance: 3, type: "medical" },
+                { name: "Rádio", emoji: "📻", chance: 2, type: "tool" },
+                { name: "Arma", emoji: "🔫", chance: 1, type: "weapon" },
+                { name: "Água Potável", emoji: "🚰", chance: 2, type: "consumable" }
+            ],
+            comida: [
+                { name: "Fruta Estranha", emoji: "🍎", chance: 15, type: "food" },
+                { name: "Cogumelo", emoji: "🍄", chance: 10, type: "food" },
+                { name: "Raiz Comestível", emoji: "🥔", chance: 12, type: "food" },
+                { name: "Carne Seca", emoji: "🥩", chance: 8, type: "food" }
+            ],
+            geladeira: [
+                { name: "Refrigerante", emoji: "🥤", chance: 20, type: "consumable" },
+                { name: "Iogurte Vencido", emoji: "🥛", chance: 15, type: "food" },
+                { name: "Carne Conservada", emoji: "🍖", chance: 10, type: "food" },
+                { name: "Gelo Derretido", emoji: "🧊", chance: 25, type: "material" }
+            ],
+            moveis: [
+                { name: "Chave Velha", emoji: "🔑", chance: 10, type: "tool" },
+                { name: "Livro Molhado", emoji: "📖", chance: 15, type: "material" },
+                { name: "Garrafa Vazia", emoji: "🍾", chance: 20, type: "material" },
+                { name: "Foto Antiga", emoji: "🖼️", chance: 5, type: "special" },
+                { name: "Moedas", emoji: "💰", chance: 8, type: "special" }
+            ],
+            
+            getRandomItem() {
+                const roll = Math.random() * 100;
+                if (roll < 40) return null;
+                if (roll < 70) return this.getRarityItem('comum');
+                if (roll < 85) return this.getRarityItem('incomum');
+                return this.getRarityItem('raro');
+            },
+            
+            getRarityItem(rarity) {
+                const items = this[rarity];
+                const item = items[Math.floor(Math.random() * items.length)];
+                return Math.random() * 100 <= item.chance ? item : null;
+            },
+
+            getRandomFood() {
+                const item = this.comida[Math.floor(Math.random() * this.comida.length)];
+                return Math.random() * 100 <= item.chance ? item : null;
+            },
+
+            getRandomFridgeItem() {
+                const item = this.geladeira[Math.floor(Math.random() * this.geladeira.length)];
+                return Math.random() * 100 <= item.chance ? item : null;
+            },
+
+            getRandomFurnitureItem() {
+                const item = this.moveis[Math.floor(Math.random() * this.moveis.length)];
+                return Math.random() * 100 <= item.chance ? item : null;
+            }
+        };
+
+        // SISTEMA DE MENSAGENS
+        const messageSystem = {
+            collect: {
+                success: [
+                    "🎉 Coleta bem sucedida! Você encontrou algo útil!",
+                    "💎 Excelente! Você conseguiu coletar com sucesso!",
+                    "🛠️ Perfeito! Mais recursos para sua jornada!"
+                ],
+                failure: [
+                    "💸 Oops! Acho que isso não foi legal...",
+                    "🤔 Hmm... Talvez não fosse para coletar isso...",
+                    "🚫 Essa coleta não deu muito certo..."
+                ],
+                neutral: [
+                    "🔍 Interessante... mas será que é útil?",
+                    "🤷‍♂️ Coleta realizada, mas o resultado é questionável..."
+                ]
+            },
+            explore: [
+                "🕷️ Oops! Você encontrou algumas aranhas mas nada de importante...",
+                "🤔 Hmm... Nada interessante por aqui. Continue procurando!",
+                "🏜️ Só areia e mais areia... nada útil.",
+                "🌵 Alguns cactos, mas nada aproveitável."
+            ],
+            fridge: [
+                "🧊 A geladeira está quase vazia...",
+                "💨 Só vento quente saindo da geladeira",
+                "🕸️ Teias de aranha cobrem o interior"
+            ],
+            furniture: [
+                "🪑 Os móveis estão em péssimo estado",
+                "🐀 Sinais de roedores por toda parte",
+                "💨 Poeira por todos os lados"
+            ],
+            random: [
+                "🌅 O sol começa a nascer no horizonte...",
+                "🌌 As estrelas aparecem no céu escuro",
+                "💨 Uma brisa suave passa pelo acampamento",
+                "🌵 Cactos balançam lentamente ao vento"
+            ]
+        };
+
+        // INICIALIZAÇÃO
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                document.getElementById('splash-screen').style.display = 'none';
+                document.getElementById('main-container').style.display = 'grid';
+                initializeEventListeners();
+                startRoomCleanup();
+                startRandomMessages();
+            }, 3000);
+        });
+
+        function initializeEventListeners() {
+            document.getElementById('create-room-btn').addEventListener('click', createRoom);
+            document.getElementById('join-room-btn').addEventListener('click', joinRoom);
+            document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
+
+            document.querySelectorAll('.dice-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const dice = e.target.dataset.dice;
+                    if (dice) rollDice(parseInt(dice));
+                });
+            });
+
+            document.getElementById('explore-btn').addEventListener('click', explore);
+            document.getElementById('search-food').addEventListener('click', searchFood);
+            document.getElementById('chop-tree').addEventListener('click', chopTree);
+            document.getElementById('collect-btn').addEventListener('click', collect);
+            document.getElementById('assign-roles-btn').addEventListener('click', assignRoles);
+            document.getElementById('next-turn-btn').addEventListener('click', nextTurn);
+            
+            // Novas ações
+            document.getElementById('search-fridge').addEventListener('click', searchFridge);
+            document.getElementById('search-furniture').addEventListener('click', searchFurniture);
+        }
+
+        // SISTEMA DE SALAS
+        async function createRoom() {
+            const roomName = document.getElementById('new-room-name').value.trim();
+            let hostName = document.getElementById('host-name').value.trim();
+
+            if (!roomName || !hostName) {
+                addLog('❌ Preencha todos os campos!');
+                return;
+            }
+
+            // Gerar nome único
+            hostName = generateUniqueName(hostName);
+
+            const roomId = generateRoomId();
+            
+            try {
+                gameState.roomId = roomId;
+                gameState.isHost = true;
+                gameState.usedNames.clear();
+                gameState.usedNames.add(hostName.toLowerCase());
+
+                // Criar sala no Firebase
+                await set(ref(db, `rooms/${roomId}/meta`), {
+                    name: roomName,
+                    host: hostName,
+                    createdAt: Date.now(),
+                    playerCount: 1,
+                    maxPlayers: 6,
+                    gameStarted: false
+                });
+
+                // Adicionar host como jogador
+                const playerRef = push(ref(db, `rooms/${roomId}/players`));
+                gameState.playerId = playerRef.key;
+                
+                await set(playerRef, {
+                    name: hostName,
+                    role: 'host',
+                    isHost: true,
+                    isPlaying: true,
+                    inventory: [],
+                    joinedAt: Date.now()
+                });
+
+                // Estado inicial do jogo
+                await set(ref(db, `rooms/${roomId}/game`), {
+                    turn: 1,
+                    day: 1,
+                    weather: "🌞 Dia Ensolarado",
+                    weatherEffect: "O calor está intenso, melhor beber água",
+                    phase: 'day',
+                    log: []
+                });
+
+                updateUIForRoom(roomId);
+                addLog(`✅ Sala "${roomName}" criada com sucesso!`);
+                addLog(`🔑 Código da sala: ${roomId}`);
+                addLog(`👑 Você é o host - Controle o jogo!`);
+                startListeningToRoom();
+
+            } catch (error) {
+                console.error('Erro ao criar sala:', error);
+                addLog('❌ Erro ao criar sala. Verifique o console.');
+            }
+        }
+
+        async function joinRoom() {
+            const roomId = document.getElementById('room-id').value.trim();
+            let playerName = document.getElementById('player-name').value.trim();
+
+            if (!roomId || !playerName) {
+                addLog('❌ Preencha todos os campos!');
+                return;
+            }
+
+            try {
+                // Verificar se sala existe
+                const roomRef = ref(db, `rooms/${roomId}`);
+                const snapshot = await get(roomRef);
+
+                if (!snapshot.exists()) {
+                    addLog('❌ Sala não encontrada! Verifique o ID.');
+                    return;
+                }
+
+                const roomData = snapshot.val();
+                
+                // Verificar nomes duplicados
+                const existingPlayers = roomData.players || {};
+                const existingNames = new Set(
+                    Object.values(existingPlayers).map(p => p.name.toLowerCase())
+                );
+                
+                if (existingNames.has(playerName.toLowerCase())) {
+                    playerName = generateUniqueName(playerName);
+                    addLog(`🔄 Nome já existe! Você será chamado de: ${playerName}`);
+                }
+
+                const currentPlayers = Object.keys(existingPlayers).length;
+
+                // Verificar se sala está cheia
+                if (currentPlayers >= roomData.meta.maxPlayers) {
+                    gameState.isSpectator = true;
+                    addLog('👁️ Entrando como espectador (sala cheia)...');
+                }
+
+                gameState.roomId = roomId;
+
+                // Adicionar jogador
+                const playerRef = push(ref(db, `rooms/${roomId}/players`));
+                gameState.playerId = playerRef.key;
+                
+                await set(playerRef, {
+                    name: playerName,
+                    role: gameState.isSpectator ? 'spectator' : 'survivor',
+                    isHost: false,
+                    isPlaying: !gameState.isSpectator,
+                    inventory: [],
+                    joinedAt: Date.now()
+                });
+
+                // Atualizar contador
+                await update(ref(db, `rooms/${roomId}/meta`), {
+                    playerCount: currentPlayers + 1
+                });
+
+                updateUIForRoom(roomId);
+                addLog(`✅ Entrou na sala como ${playerName}`);
+                startListeningToRoom();
+
+            } catch (error) {
+                console.error('Erro ao entrar na sala:', error);
+                addLog('❌ Erro ao entrar na sala.');
+            }
+        }
+
+        function updateUIForRoom(roomId) {
+            document.getElementById('room-system').style.display = 'none';
+            document.getElementById('room-management').style.display = 'block';
+            document.getElementById('leave-room-btn').style.display = 'block';
+            document.getElementById('room-code-display').style.display = 'block';
+            document.getElementById('room-code-display').textContent = `Código: ${roomId}`;
+            
+            if (gameState.isHost) {
+                document.getElementById('host-controls').style.display = 'block';
+            }
+
+            if (gameState.isSpectator) {
+                document.getElementById('spectator-mode').style.display = 'block';
+                document.querySelectorAll('.action-btn-large').forEach(btn => {
+                    btn.disabled = true;
+                });
+            }
+        }
+
+        function startListeningToRoom() {
+            // Escutar jogadores
+            onValue(ref(db, `rooms/${gameState.roomId}/players`), (snapshot) => {
+                const players = snapshot.val() || {};
+                updatePlayersList(players);
+            });
+
+            // Escutar estado do jogo
+            onValue(ref(db, `rooms/${gameState.roomId}/game`), (snapshot) => {
+                const game = snapshot.val() || {};
+                updateGameState(game);
+            });
+
+            // Escutar inventário do jogador atual
+            if (gameState.playerId) {
+                onValue(ref(db, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`), (snapshot) => {
+                    const inventory = snapshot.exists() ? snapshot.val() : [];
+                    updateInventoryDisplay(inventory);
+                });
+            }
+        }
+
+        function updatePlayersList(players) {
+            const list = document.getElementById('players-list');
+            list.innerHTML = '';
+
+            Object.entries(players).forEach(([id, player]) => {
+                const playerElement = document.createElement('div');
+                playerElement.className = 'player-card';
+                
+                playerElement.innerHTML = `
+                    <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+                    <div class="player-info">
+                        <div class="player-name">
+                            ${player.name}
+                            ${player.isHost ? '👑' : ''}
+                            ${id === gameState.playerId ? ' (Você)' : ''}
+                        </div>
+                        <div class="player-role">${getRoleDisplay(player.role)}</div>
+                    </div>
+                    <div class="player-actions">
+                        ${gameState.isHost && !player.isHost ? `
+                            <button class="action-btn danger" onclick="kickPlayer('${id}')">🚫</button>
+                            ${player.role === 'spectator' ? `
+                                <button class="action-btn success" onclick="inviteToGame('${id}')">🎮</button>
+                            ` : ''}
+                            <button class="action-btn warning" onclick="viewPlayerInventory('${id}', '${player.name}')">🎒</button>
+                        ` : ''}
+                    </div>
+                `;
+
+                list.appendChild(playerElement);
+            });
+
+            document.getElementById('player-count').textContent = 
+                `Jogadores: ${Object.keys(players).length}/6`;
+        }
+
+        function updateGameState(game) {
+            if (game.weather) {
+                document.getElementById('weather-event').style.display = 'block';
+                document.getElementById('weather-text').textContent = `${game.weather} - Dia ${game.day || 1}`;
+                document.getElementById('weather-effect').textContent = game.weatherEffect || '';
+            }
+
+            // Atualizar identidade do jogador
+            if (game.roles && gameState.playerId) {
+                const playerRole = game.roles[gameState.playerId];
+                if (playerRole && playerRole !== gameState.currentRole) {
+                    gameState.currentRole = playerRole;
+                    document.getElementById('role-display').textContent = `🎭 ${getRoleDisplay(playerRole)}`;
+                    
+                    // Mensagem secreta
+                    if (playerRole === 'assassin') {
+                        addLog('🔪 VOCÊ É O ASSASSINO! Elimine os outros sem ser descoberto!', true);
+                    }
+                }
+            }
+        }
+
+        // SISTEMA DE AÇÕES EXPANDIDO
+        async function explore() {
+            const roll = rollDice(20);
+            addLog(`🔍 Vasculhando... Rolou ${roll} no D20`);
+
+            if (roll <= 10) {
+                const message = messageSystem.explore[Math.floor(Math.random() * messageSystem.explore.length)];
+                addLog(message);
+            } else {
+                const item = itemSystem.getRandomItem();
+                if (item) {
+                    addLog(`🎉 Encontrou: ${item.emoji} ${item.name}!`);
+                    await addItemToInventory(item);
+                } else {
+                    addLog('💨 Quase encontrou algo, mas o vento levou...');
+                }
+            }
+        }
+
+        async function searchFood() {
+            const roll = rollDice(8);
+            addLog(`🍖 Procurando comida... Rolou ${roll} no D8`);
+
+            if (roll <= 2) {
+                // Evento raro de envenenamento
+                if (Math.random() < 0.3) {
+                    addLog('🐍 Uma cobra venenosa te picou! Você está envenenado!');
+                } else {
+                    addLog('🌵 Espinhos! Você se machucou...');
+                }
+            } else if (roll <= 5) {
+                addLog('🏜️ Só encontrou cactos... nada comestível.');
+            } else {
+                const item = itemSystem.getRandomFood();
+                if (item) {
+                    addLog(`🍽️ Encontrou comida: ${item.emoji} ${item.name}!`);
+                    await addItemToInventory(item);
+                } else {
+                    addLog('💨 Quase encontrou algo, mas o vento levou...');
+                }
+            }
+        }
+
+        async function chopTree() {
+            const roll = rollDice(8);
+            addLog(`🪓 Espancando árvore... Rolou ${roll} no D8`);
+
+            if (roll <= 2) {
+                addLog('💢 A árvore revida! Você se machucou...');
+            } else if (roll <= 4) {
+                addLog('🌿 Caiu apenas um galho seco...');
+                await addItemToInventory({ name: "Galho", emoji: "🌿" });
+            } else {
+                addLog('🎯 Madeira obtida com sucesso!');
+                await addItemToInventory({ name: "Madeira", emoji: "🪵" });
+            }
+        }
+
+        async function collect() {
+            const roll = rollDice(20);
+            addLog(`🌿 Coletando arbustos... Rolou ${roll} no D20`);
+
+            if (roll <= 8) {
+                const message = messageSystem.collect.failure[Math.floor(Math.random() * messageSystem.collect.failure.length)];
+                addLog(message);
+            } else if (roll <= 15) {
+                const message = messageSystem.collect.neutral[Math.floor(Math.random() * messageSystem.collect.neutral.length)];
+                addLog(message);
+            } else {
+                const message = messageSystem.collect.success[Math.floor(Math.random() * messageSystem.collect.success.length)];
+                addLog(message);
+                
+                const item = itemSystem.getRandomItem();
+                if (item) {
+                    addLog(`🎁 Coletou: ${item.emoji} ${item.name}`);
+                    await addItemToInventory(item);
+                }
+            }
+        }
+
+        // NOVAS AÇÕES
+        async function searchFridge() {
+            const roll = rollDice(20);
+            addLog(`🧊 Procurando na geladeira... Rolou ${roll} no D20`);
+
+            if (roll <= 5) {
+                const message = messageSystem.fridge[Math.floor(Math.random() * messageSystem.fridge.length)];
+                addLog(message);
+            } else if (roll <= 15) {
+                const item = itemSystem.getRandomFridgeItem();
+                if (item) {
+                    addLog(`🧊 Encontrou na geladeira: ${item.emoji} ${item.name}!`);
+                    await addItemToInventory(item);
+                } else {
+                    addLog('🧊 Só restou um cheiro estranho...');
+                }
+            } else {
+                // Chance de encontrar itens raros na geladeira
+                const item = itemSystem.getRarityItem('raro');
+                if (item) {
+                    addLog(`🎉 Encontrou algo raro na geladeira: ${item.emoji} ${item.name}!`);
+                    await addItemToInventory(item);
+                } else {
+                    addLog('🧊 Encontrou uma geladeira funcionando, mas nada de especial.');
+                }
+            }
+        }
+
+        async function searchFurniture() {
+            const roll = rollDice(20);
+            addLog(`🪑 Vasculhando móveis... Rolou ${roll} no D20`);
+
+            if (roll <= 5) {
+                const message = messageSystem.furniture[Math.floor(Math.random() * messageSystem.furniture.length)];
+                addLog(message);
+            } else if (roll <= 15) {
+                const item = itemSystem.getRandomFurnitureItem();
+                if (item) {
+                    addLog(`🪑 Encontrou nos móveis: ${item.emoji} ${item.name}!`);
+                    await addItemToInventory(item);
+                } else {
+                    addLog('🪑 Só poeira...');
+                }
+            } else {
+                // Chance de encontrar itens raros
+                const item = itemSystem.getRarityItem('raro');
+                if (item) {
+                    addLog(`🎉 Encontrou algo raro nos móveis: ${item.emoji} ${item.name}!`);
+                    await addItemToInventory(item);
+                } else {
+                    addLog('🪑 Encontrou um móvel antigo, mas nada de especial.');
+                }
+            }
+        }
+
+        // SISTEMA DE TURNOS
+        async function nextTurn() {
+            if (!gameState.isHost) return;
+
+            const gameRef = ref(db, `rooms/${gameState.roomId}/game`);
+            const snapshot = await get(gameRef);
+            const game = snapshot.exists() ? snapshot.val() : { turn: 1, day: 1 };
+
+            const newTurn = game.turn + 1;
+            const newDay = newTurn % 3 === 0 ? (game.day || 1) + 1 : (game.day || 1);
+            
+            // Climas aleatórios
+            const weathers = [
+                { name: "🌞 Dia Ensolarado", effect: "O calor está intenso, melhor beber água" },
+                { name: "🌧️ Chuva Rara", effect: "Água disponível, mas cuidado com doenças" },
+                { name: "🌬️ Ventania Forte", effect: "Dificuldade em explorar áreas abertas" },
+                { name: "🌫️ Névoa Espessa", effect: "Visibilidade reduzida, perfeito para emboscadas" }
+            ];
+            const newWeather = weathers[Math.floor(Math.random() * weathers.length)];
+            
+            await update(gameRef, {
+                turn: newTurn,
+                day: newDay,
+                weather: newWeather.name,
+                weatherEffect: newWeather.effect,
+                phase: newTurn % 2 === 0 ? 'night' : 'day'
+            });
+
+            addLog(`⏭️ Dia ${newDay} - Turno ${newTurn} iniciado`);
+            addLog(`🌤️ ${newWeather.name}`);
+            addLog(`📋 ${newWeather.effect}`);
+        }
+
+        // SISTEMA DE IDENTIDADES
+        async function assignRoles() {
+            if (!gameState.isHost) return;
+
+            const gameRef = ref(db, `rooms/${gameState.roomId}/game`);
+            const gameSnap = await get(gameRef);
+            const game = gameSnap.exists() ? gameSnap.val() : {};
+
+            if (game.rolesAssigned) {
+                addLog('❌ Os papéis já foram sorteados!');
+                return;
+            }
+
+            const playersRef = ref(db, `rooms/${gameState.roomId}/players`);
+            const snapshot = await get(playersRef);
+            const players = snapshot.val() || {};
+
+            const playingPlayers = Object.entries(players).filter(([id, player]) => 
+                player.isPlaying && !player.isHost
+            );
+
+            if (playingPlayers.length < 2) {
+                addLog('❌ Precisa de pelo menos 2 jogadores!');
+                return;
+            }
+
+            // Sempre 1 assassino
+            const assassinIndex = Math.floor(Math.random() * playingPlayers.length);
+            const roles = {};
+
+            playingPlayers.forEach(([id, player], index) => {
+                roles[id] = index === assassinIndex ? 'assassin' : 'survivor';
+            });
+
+            await update(gameRef, {
+                roles: roles,
+                rolesAssigned: true
+            });
+
+            addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
+        }
+
+        // FUNÇÕES AUXILIARES
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function generateUniqueName(baseName) {
+            let finalName = baseName;
+            let counter = 1;
+            
+            while (gameState.usedNames.has(finalName.toLowerCase())) {
+                finalName = `${baseName}${counter}`;
+                counter++;
+            }
+            
+            gameState.usedNames.add(finalName.toLowerCase());
+            return finalName;
+        }
+
+        function getRoleDisplay(role) {
+            const roles = {
+                'host': '👑 Host',
+                'survivor': '😊 Sobrevivente',
+                'assassin': '🔪 Assassino',
+                'spectator': '👁️ Espectador'
+            };
+            return roles[role] || role;
+        }
+
+        function addLog(message, isPrivate = false) {
+            const log = document.getElementById('game-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            if (isPrivate) {
+                entry.style.background = 'rgba(255, 107, 53, 0.1)';
+                entry.style.border = '1px solid var(--accent)';
+                entry.textContent = `🔒 ${message}`;
+            } else {
+                entry.textContent = message;
+            }
+            
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+
+            // Salvar no Firebase se for mensagem pública
+            if (!isPrivate && gameState.roomId) {
+                const logRef = ref(db, `rooms/${gameState.roomId}/game/log`);
+                push(logRef, message);
+            }
+        }
+
+        async function addItemToInventory(item) {
+            if (!gameState.roomId || !gameState.playerId) return;
+
+            const playerRef = ref(db, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`);
+            const snapshot = await get(playerRef);
+            const inventory = snapshot.exists() ? snapshot.val() : [];
+            
+            inventory.push(item);
+            await set(playerRef, inventory);
+            updateInventoryDisplay(inventory);
+        }
+
+        function updateInventoryDisplay(inventory) {
+            const grid = document.getElementById('inventory-grid');
+            grid.innerHTML = '';
+
+            inventory.forEach((item, index) => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item-card';
+                itemElement.innerHTML = `
+                    <div class="item-icon">${item.emoji}</div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-actions">
+                        <button class="item-btn danger" onclick="removeItem(${index})">🗑️</button>
+                        <button class="item-btn success" onclick="useItem(${index})">🔄</button>
+                    </div>
+                `;
+                grid.appendChild(itemElement);
+            });
+        }
+
+        // FUNÇÕES PARA GERENCIAR ITENS
+        window.removeItem = async function(index) {
+            if (!gameState.roomId || !gameState.playerId) return;
+
+            const playerRef = ref(db, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`);
+            const snapshot = await get(playerRef);
+            let inventory = snapshot.exists() ? snapshot.val() : [];
+            
+            if (index >= 0 && index < inventory.length) {
+                const removedItem = inventory.splice(index, 1)[0];
+                await set(playerRef, inventory);
+                updateInventoryDisplay(inventory);
+                addLog(`🗑️ Você descartou: ${removedItem.emoji} ${removedItem.name}`);
+            }
+        };
+
+        window.useItem = async function(index) {
+            if (!gameState.roomId || !gameState.playerId) return;
+
+            const playerRef = ref(db, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`);
+            const snapshot = await get(playerRef);
+            let inventory = snapshot.exists() ? snapshot.val() : [];
+            
+            if (index >= 0 && index < inventory.length) {
+                const item = inventory[index];
+                
+                // Efeitos baseados no tipo de item
+                switch(item.type) {
+                    case 'food':
+                        addLog(`🍽️ Você consumiu: ${item.emoji} ${item.name} e recuperou energia!`);
+                        break;
+                    case 'consumable':
+                        addLog(`💧 Você usou: ${item.emoji} ${item.name} e se sente melhor!`);
+                        break;
+                    case 'medical':
+                        addLog(`💊 Você usou: ${item.emoji} ${item.name} e curou ferimentos!`);
+                        break;
+                    default:
+                        addLog(`🔧 Você usou: ${item.emoji} ${item.name}, mas não teve efeito especial.`);
+                }
+                
+                // Remove o item após uso (opcional)
+                // inventory.splice(index, 1);
+                // await set(playerRef, inventory);
+                // updateInventoryDisplay(inventory);
+            }
+        };
+
+        // VISUALIZAR INVENTÁRIO DE OUTROS JOGADORES
+        window.viewPlayerInventory = async function(playerId, playerName) {
+            if (!gameState.isHost) return;
+
+            const playerRef = ref(db, `rooms/${gameState.roomId}/players/${playerId}/inventory`);
+            const snapshot = await get(playerRef);
+            const inventory = snapshot.exists() ? snapshot.val() : [];
+
+            const modal = document.getElementById('player-inventory-modal');
+            const modalName = document.getElementById('modal-player-name');
+            const modalGrid = document.getElementById('modal-inventory-grid');
+
+            modalName.textContent = `🎒 Inventário de ${playerName}`;
+            modalGrid.innerHTML = '';
+
+            inventory.forEach((item, index) => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item-card';
+                itemElement.innerHTML = `
+                    <div class="item-icon">${item.emoji}</div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-actions">
+                        <button class="item-btn danger" onclick="removeOtherPlayerItem('${playerId}', ${index})">🗑️</button>
+                    </div>
+                `;
+                modalGrid.appendChild(itemElement);
+            });
+
+            modal.style.display = 'flex';
+        };
+
+        window.closePlayerInventory = function() {
+            const modal = document.getElementById('player-inventory-modal');
+            modal.style.display = 'none';
+        };
+
+        window.removeOtherPlayerItem = async function(playerId, index) {
+            if (!gameState.isHost) return;
+
+            const playerRef = ref(db, `rooms/${gameState.roomId}/players/${playerId}/inventory`);
+            const snapshot = await get(playerRef);
+            let inventory = snapshot.exists() ? snapshot.val() : [];
+            
+            if (index >= 0 && index < inventory.length) {
+                const removedItem = inventory.splice(index, 1)[0];
+                await set(playerRef, inventory);
+                
+                // Atualizar o modal
+                const playerName = document.getElementById('modal-player-name').textContent.replace('🎒 Inventário de ', '');
+                viewPlayerInventory(playerId, playerName);
+                
+                addLog(`🗑️ Host removeu item de ${playerName}: ${removedItem.emoji} ${removedItem.name}`);
+            }
+        };
+
+        function rollDice(sides) {
+            const result = Math.floor(Math.random() * sides) + 1;
+            addLog(`🎲 Rolou D${sides}: ${result}`);
+            return result;
+        }
+
+        // MENSAGENS ALEATÓRIAS AUTOMÁTICAS
+        function startRandomMessages() {
+            setInterval(() => {
+                if (gameState.roomId && gameState.isHost) {
+                    const randomMessage = messageSystem.random[Math.floor(Math.random() * messageSystem.random.length)];
+                    addLog(`💬 ${randomMessage}`);
+                }
+            }, 300000); // 5 minutos
+        }
+
+        // FUNÇÕES DO HOST
+        window.sendRandomMessage = function() {
+            if (!gameState.isHost) return;
+            const randomMessage = messageSystem.random[Math.floor(Math.random() * messageSystem.random.length)];
+            addLog(`💬 ${randomMessage}`);
+        };
+
+        window.inviteAllSpectators = async function() {
+            if (!gameState.isHost) return;
+
+            const playersRef = ref(db, `rooms/${gameState.roomId}/players`);
+            const snapshot = await get(playersRef);
+            const players = snapshot.val() || {};
+
+            let invitedCount = 0;
+            const updates = {};
+
+            Object.entries(players).forEach(([id, player]) => {
+                if (player.role === 'spectator') {
+                    updates[`${id}/role`] = 'survivor';
+                    updates[`${id}/isPlaying`] = true;
+                    invitedCount++;
+                }
+            });
+
+            if (invitedCount > 0) {
+                await update(playersRef, updates);
+                addLog(`🎮 ${invitedCount} espectadores convidados para o jogo!`);
+            } else {
+                addLog('ℹ️ Não há espectadores para convidar.');
+            }
+        };
+
+        window.kickPlayer = async function(playerId) {
+            if (!gameState.isHost) return;
+            await remove(ref(db, `rooms/${gameState.roomId}/players/${playerId}`));
+            addLog('🚫 Jogador removido da sala');
+        };
+
+        window.inviteToGame = async function(playerId) {
+            if (!gameState.isHost) return;
+            await update(ref(db, `rooms/${gameState.roomId}/players/${playerId}`), {
+                isPlaying: true,
+                role: 'survivor'
+            });
+            addLog('🎮 Jogador convidado para o jogo');
+        };
+
+        async function leaveRoom() {
+            if (gameState.roomId && gameState.playerId) {
+                await remove(ref(db, `rooms/${gameState.roomId}/players/${gameState.playerId}`));
+            }
+            resetUI();
+            addLog('🚪 Você saiu da sala');
+        }
+
+        function resetUI() {
+            gameState.roomId = null;
+            gameState.playerId = null;
+            gameState.isHost = false;
+            gameState.isSpectator = false;
+            
+            document.getElementById('room-system').style.display = 'block';
+            document.getElementById('room-management').style.display = 'none';
+            document.getElementById('leave-room-btn').style.display = 'none';
+            document.getElementById('host-controls').style.display = 'none';
+            document.getElementById('spectator-mode').style.display = 'none';
+            document.getElementById('room-code-display').style.display = 'none';
+            
+            document.querySelectorAll('.action-btn-large').forEach(btn => {
+                btn.disabled = false;
+            });
+        }
+
+        // LIMPEZA DE SALAS
+        function startRoomCleanup() {
+            setInterval(async () => {
+                try {
+                    const roomsRef = ref(db, 'rooms');
+                    const snapshot = await get(roomsRef);
+                    const rooms = snapshot.val() || {};
+
+                    const now = Date.now();
+                    for (const [roomId, roomData] of Object.entries(rooms)) {
+                        if (now - roomData.meta.createdAt > 300000) { // 5 minutos
+                            if (!roomData.players || Object.keys(roomData.players).length === 0) {
+                                await remove(ref(db, `rooms/${roomId}`));
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log('Limpeza de salas executada');
+                }
+            }, 60000);
+        }
     </script>
 </body>
 </html>
