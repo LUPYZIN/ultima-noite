@@ -45,7 +45,7 @@
             align-items: center;
             z-index: 1000;
             opacity: 1;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.8s ease;
         }
 
         .title-animation {
@@ -732,7 +732,7 @@
             ]
         };
 
-        // Inicialização - CORREÇÃO PRINCIPAL
+        // INICIALIZAÇÃO - SISTEMA DE SPLASH CORRIGIDO
         document.addEventListener('DOMContentLoaded', function() {
             let transitionCompleted = false;
             
@@ -764,14 +764,15 @@
                         clearTimeout(contingencyTimeout);
                         initializeEventListeners();
                     });
-                }, 500);
-            }, 2000);
+                }, 800); // Tempo igual ao da transição CSS
+            }, 3000); // 3 segundos de exibição da splash
             
             // Configurar botão de contingência
             document.getElementById('contingency-btn').addEventListener('click', function() {
                 const splashScreen = document.getElementById('splash-screen');
                 const mainContainer = document.getElementById('main-container');
                 
+                console.log("Botão de contingência acionado");
                 splashScreen.style.opacity = '0';
                 
                 setTimeout(function() {
