@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTIMA NOITE - RPG</title>
+    <style>
+        :root {
+            --bg: #0a0e14;
+            --panel: #1a1f2e;
+            --muted: #8b9bb5;
+            --accent: #ff6b35;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --glass: rgba(255, 255, 255, 0.05);
+            --text: #e4f0fb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Layout Principal */
+        .container {
+            display: grid;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+            grid-template-columns: 300px 1fr 350px;
+            grid-template-rows: auto 1fr;
+            min-height: 100vh;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: var(--panel);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .game-title {
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .room-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .room-code {
+            background: var(--accent);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* Sistema de Salas */
+        .room-system {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        input, button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.danger {
+            background: var(--danger);
+        }
+
+        button.success {
+            background: var(--success);
+        }
+
+        button.warning {
+            background: var(--warning);
+        }
+
+        /* Lista de Jogadores */
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .player-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--glass);
+            border-radius: 10px;
+        }
+
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--accent), var(--danger));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .player-role {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .player-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        /* Área Principal */
+        .main-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .weather-event {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .dice-roller {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .dice-btn {
+            background: var(--glass);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            height: 60px;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .action-btn-large {
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .action-icon {
+            font-size: 24px;
+        }
+
+        .game-log {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 300px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Painel Direito */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .item-card {
+            background: var(--glass);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .item-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .item-name {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* Modo Visitante */
+        .spectator-mode {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--danger);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Controles do Host */
+        .host-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .host-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .host-section h4 {
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* Novos estilos para itens */
+        .item-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            justify-content: center;
+        }
+
+        .item-btn {
+            padding: 4px 8px;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+
+        .player-inventory-view {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        /* Responsividade */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 280px 1fr;
+            }
+            .container > aside:last-child {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .dice-roller {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            .inventory-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dice-roller {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .inventory-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Interface Principal -->
+    <div class="container" id="main-container">
+        <header class="header panel">
+            <div class="game-title">ULTIMA NOITE - SOBREVIVÊNCIA NO DESERTO</div>
+            <div class="room-info">
+                <div id="player-count">Jogadores: 0/6</div>
+                <div id="room-status">Desconectado</div>
+                <div id="room-code-display" class="room-code" style="display: none;">Código: ...</div>
+                <button id="leave-room-btn" class="danger" style="display: none;">Sair da Sala</button>
+            </div>
+        </header>
+
+        <aside class="panel">
+            <div class="room-system" id="room-system">
+                <h3>🔄 Sistema de Salas</h3>
+                <div class="input-group">
+                    <label>Criar Nova Sala:</label>
+                    <input type="text" id="new-room-name" placeholder="Nome da sala">
+                    <input type="text" id="host-name" placeholder="Seu nome">
+                    <button id="create-room-btn" class="success">🎮 Criar Sala</button>
+                </div>
+                
+                <div class="input-group">
+                    <label>Entrar em Sala:</label>
+                    <input type="text" id="room-id" placeholder="ID da sala">
+                    <input type="text" id="player-name" placeholder="Seu nome">
+                    <button id="join-room-btn">🚪 Entrar na Sala</button>
+                </div>
+            </div>
+
+            <div id="room-management" style="display: none;">
+                <h3>👥 Jogadores na Sala</h3>
+                <div class="players-list" id="players-list"></div>
+                <div class="spectator-mode" id="spectator-mode" style="display: none;">
+                    <strong>👁️ Modo Visitante</strong>
+                    <p>Aguardando convite para jogar...</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="panel main-area">
+            <div class="weather-event" id="weather-event" style="display: none;">
+                <div id="weather-text">🌞 Dia 1 - Dia Ensolarado</div>
+                <div id="weather-effect" style="font-size: 12px; opacity: 0.8;"></div>
+            </div>
+
+            <div class="dice-roller">
+                <button class="dice-btn" data-dice="4">🎲 D4</button>
+                <button class="dice-btn" data-dice="6">🎲 D6</button>
+                <button class="dice-btn" data-dice="8">🎲 D8</button>
+                <button class="dice-btn" data-dice="10">🎲 D10</button>
+                <button class="dice-btn" data-dice="20">🎲 D20</button>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn-large" id="explore-btn">
+                    <div class="action-icon">🔍</div>
+                    <div>Vasculhar</div>
+                </button>
+                <button class="action-btn-large" id="search-food">
+                    <div class="action-icon">🍖</div>
+                    <div>Procurar Comida</div>
+                </button>
+                <button class="action-btn-large" id="chop-tree">
+                    <div class="action-icon">🪓</div>
+                    <div>Cortar Árvore</div>
+                </button>
+                <button class="action-btn-large" id="collect-btn">
+                    <div class="action-icon">🌿</div>
+                    <div>Coletar Arbustos</div>
+                </button>
+                <button class="action-btn-large" id="search-fridge">
+                    <div class="action-icon">🧊</div>
+                    <div>Procurar Geladeira</div>
+                </button>
+                <button class="action-btn-large" id="search-furniture">
+                    <div class="action-icon">🪑</div>
+                    <div>Vasculhar Móveis</div>
+                </button>
+                <button class="action-btn-large" id="cactus-btn">
+                    <div class="action-icon">🌵</div>
+                    <div>Coletar Cacto</div>
+                </button>
+                <button class="action-btn-large" id="water-btn">
+                    <div class="action-icon">💧</div>
+                    <div>Procurar Água</div>
+                </button>
+            </div>
+
+            <div class="game-log" id="game-log">
+                <div class="log-entry">📝 Bem-vindo ao ULTIMA NOITE! Entre em uma sala para começar.</div>
+            </div>
+        </main>
+
+        <aside class="panel">
+            <div id="player-info">
+                <h3>🎯 Sua Identidade</h3>
+                <div id="role-display">Aguardando sorteio...</div>
+            </div>
+
+            <div id="inventory-section">
+                <h3>🎒 Seu Inventário</h3>
+                <div class="inventory-grid" id="inventory-grid"></div>
+            </div>
+
+            <div id="host-controls" style="display: none;">
+                <h3>👑 Controles do Host</h3>
+                <div class="host-controls">
+                    <div class="host-section">
+                        <h4>🎮 Controles do Jogo</h4>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <button id="assign-roles-btn" class="success">🎭 Sortear Identidades</button>
+                            <button id="next-turn-btn" class="success">⏭️ Avançar Turno</button>
+                        </div>
+                    </div>
+                    
+                    <div class="host-section">
+                        <h4>👥 Gerenciar Jogadores</h4>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <button id="random-message-btn" class="warning">💬 Mensagem Aleatória</button>
+                            <button id="invite-spectators-btn" class="warning">🎮 Convidar Todos</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Modal para visualizar inventário de outros jogadores -->
+    <div class="modal" id="player-inventory-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-player-name">Inventário do Jogador</h3>
+                <button class="close-modal">×</button>
+            </div>
+            <div id="modal-inventory-grid" class="inventory-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        // Sistema de dados offline (sem Firebase por enquanto)
+        const gameState = {
+            roomId: null,
+            playerId: null,
+            isHost: false,
+            isSpectator: false,
+            currentRole: null,
+            usedNames: new Set(),
+            inventory: [],
+            currentRoom: null
+        };
+
+        // Sistema de itens
+        const itemSystem = {
+            comum: [
+                { name: "Madeira", emoji: "🪵", chance: 25, type: "material" },
+                { name: "Galho", emoji: "🌿", chance: 30, type: "material" },
+                { name: "Pedra", emoji: "🪨", chance: 20, type: "material" },
+                { name: "Água Suja", emoji: "💧", chance: 15, type: "consumable" }
+            ],
+            geladeira: [
+                { name: "Refrigerante", emoji: "🥤", chance: 20, type: "consumable" },
+                { name: "Iogurte Vencido", emoji: "🥛", chance: 15, type: "food" },
+                { name: "Sardinha Enlatada", emoji: "🐟", chance: 10, type: "food" }
+            ],
+            moveis: [
+                { name: "Garrafa Vazia", emoji: "🍾", chance: 20, type: "material" },
+                { name: "Chave Velha", emoji: "🔑", chance: 10, type: "tool" },
+                { name: "Bandagem Suja", emoji: "🩹", chance: 8, type: "medical" }
+            ],
+            cacto: [
+                { name: "Água de Cacto", emoji: "💦", chance: 40, type: "consumable" },
+                { name: "Espinho de Cacto", emoji: "🪡", chance: 25, type: "material" }
+            ]
+        };
+
+        // Sistema de mensagens
+        const messageSystem = {
+            explore: [
+                "🔍 Você vasculha a área e encontra algo útil!",
+                "🏜️ Encontrou alguns itens abandonados...",
+                "📦 Há algo brilhando na areia!"
+            ],
+            failure: [
+                "💨 Nada de útil por aqui...",
+                "🏜️ Só areia e mais areia...",
+                "🌵 Apenas cactos espinhosos..."
+            ]
+        };
+
+        // INICIALIZAÇÃO
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Menu Principal Carregado");
+            initializeEventListeners();
+        });
+
+        function initializeEventListeners() {
+            console.log("Inicializando event listeners...");
+            
+            // Sistema de salas
+            document.getElementById('create-room-btn').addEventListener('click', createRoom);
+            document.getElementById('join-room-btn').addEventListener('click', joinRoom);
+            document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
+
+            // Ações do jogo
+            document.getElementById('explore-btn').addEventListener('click', explore);
+            document.getElementById('search-food').addEventListener('click', searchFood);
+            document.getElementById('chop-tree').addEventListener('click', chopTree);
+            document.getElementById('collect-btn').addEventListener('click', collect);
+            document.getElementById('search-fridge').addEventListener('click', searchFridge);
+            document.getElementById('search-furniture').addEventListener('click', searchFurniture);
+            document.getElementById('cactus-btn').addEventListener('click', collectCactus);
+            document.getElementById('water-btn').addEventListener('click', searchWater);
+
+            // Controles do host
+            document.getElementById('assign-roles-btn').addEventListener('click', assignRoles);
+            document.getElementById('next-turn-btn').addEventListener('click', nextTurn);
+            document.getElementById('random-message-btn').addEventListener('click', sendRandomMessage);
+            document.getElementById('invite-spectators-btn').addEventListener('click', inviteAllSpectators);
+
+            // Dados
+            document.querySelectorAll('.dice-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const dice = e.target.closest('.dice-btn').dataset.dice;
+                    if (dice) rollDice(parseInt(dice));
+                });
+            });
+
+            // Modal
+            document.querySelector('.close-modal').addEventListener('click', closePlayerInventory);
+            
+            // Fechar modal ao clicar fora
+            document.getElementById('player-inventory-modal').addEventListener('click', function(e) {
+                if (e.target === this) closePlayerInventory();
+            });
+            
+            console.log("Event listeners inicializados com sucesso");
+        }
+
+        // SISTEMA DE SALAS (Offline)
+        function createRoom() {
+            const roomName = document.getElementById('new-room-name').value.trim();
+            let hostName = document.getElementById('host-name').value.trim();
+
+            if (!roomName || !hostName) {
+                addLog('❌ Preencha todos os campos!');
+                return;
+            }
+
+            // Gerar ID único para sala
+            const roomId = generateRoomId();
+            gameState.roomId = roomId;
+            gameState.isHost = true;
+            gameState.playerId = 'host_' + Date.now();
+            
+            // Criar sala local
+            gameState.currentRoom = {
+                id: roomId,
+                name: roomName,
+                host: hostName,
+                players: {
+                    [gameState.playerId]: {
+                        name: hostName,
+                        role: 'host',
+                        isHost: true,
+                        isPlaying: true,
+                        inventory: []
+                    }
+                },
+                game: {
+                    turn: 1,
+                    day: 1,
+                    weather: "🌞 Dia Ensolarado",
+                    weatherEffect: "Calor intenso - Consumo de água dobrado",
+                    phase: 'day'
+                }
+            };
+
+            updateUIForRoom(roomId);
+            addLog(`✅ Sala "${roomName}" criada com sucesso!`);
+            addLog(`🔑 Código da sala: ${roomId}`);
+            addLog(`👑 Você é o host - Controle o jogo!`);
+            
+            // Simular atualização da lista de jogadores
+            updatePlayersList();
+        }
+
+        function joinRoom() {
+            const roomId = document.getElementById('room-id').value.trim();
+            let playerName = document.getElementById('player-name').value.trim();
+
+            if (!roomId || !playerName) {
+                addLog('❌ Preencha todos os campos!');
+                return;
+            }
+
+            // Simular verificação de sala
+            if (!gameState.currentRoom || gameState.currentRoom.id !== roomId) {
+                addLog('❌ Sala não encontrada! Crie uma sala primeiro.');
+                return;
+            }
+
+            gameState.roomId = roomId;
+            gameState.playerId = 'player_' + Date.now();
+            
+            // Adicionar jogador à sala
+            gameState.currentRoom.players[gameState.playerId] = {
+                name: playerName,
+                role: 'survivor',
+                isHost: false,
+                isPlaying: true,
+                inventory: []
+            };
+
+            updateUIForRoom(roomId);
+            addLog(`✅ Entrou na sala como ${playerName}`);
+            updatePlayersList();
+        }
+
+        function updateUIForRoom(roomId) {
+            document.getElementById('room-system').style.display = 'none';
+            document.getElementById('room-management').style.display = 'block';
+            document.getElementById('leave-room-btn').style.display = 'block';
+            document.getElementById('room-code-display').style.display = 'block';
+            document.getElementById('room-code-display').textContent = `Código: ${roomId}`;
+            document.getElementById('weather-event').style.display = 'block';
+            
+            if (gameState.isHost) {
+                document.getElementById('host-controls').style.display = 'block';
+            }
+        }
+
+        function updatePlayersList() {
+            if (!gameState.currentRoom) return;
+            
+            const list = document.getElementById('players-list');
+            list.innerHTML = '';
+            const players = gameState.currentRoom.players;
+
+            Object.entries(players).forEach(([id, player]) => {
+                const playerElement = document.createElement('div');
+                playerElement.className = 'player-card';
+                
+                playerElement.innerHTML = `
+                    <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+                    <div class="player-info">
+                        <div class="player-name">
+                            ${player.name}
+                            ${player.isHost ? '👑' : ''}
+                            ${id === gameState.playerId ? ' (Você)' : ''}
+                        </div>
+                        <div class="player-role">${getRoleDisplay(player.role)}</div>
+                    </div>
+                    <div class="player-actions">
+                        ${gameState.isHost && !player.isHost ? `
+                            <button class="action-btn danger" onclick="kickPlayer('${id}')">🚫</button>
+                            <button class="action-btn warning" onclick="viewPlayerInventory('${id}', '${player.name}')">🎒</button>
+                        ` : ''}
+                    </div>
+                `;
+
+                list.appendChild(playerElement);
+            });
+
+            document.getElementById('player-count').textContent = 
+                `Jogadores: ${Object.keys(players).length}/6`;
+        }
+
+        // SISTEMA DE AÇÕES DO JOGO
+        function explore() {
+            const roll = rollDice(20);
+            addLog(`🔍 Vasculhando... Rolou ${roll} no D20`);
+
+            if (roll <= 12) {
+                const message = messageSystem.failure[Math.floor(Math.random() * messageSystem.failure.length)];
+                addLog(message);
+            } else {
+                const itemPool = ['comum', 'moveis'][Math.floor(Math.random() * 2)];
+                const item = getRandomItem(itemPool);
+                if (item) {
+                    addLog(`🎉 ${messageSystem.explore[Math.floor(Math.random() * messageSystem.explore.length]}`);
+                    addLog(`📦 Encontrou: ${item.emoji} ${item.name}`);
+                    addItemToInventory(item);
+                }
+            }
+        }
+
+        function searchFood() {
+            const roll = rollDice(8);
+            addLog(`🍖 Procurando comida... Rolou ${roll} no D8`);
+
+            if (roll <= 3) {
+                addLog('🐍 Um animal perigoso te afugentou!');
+            } else {
+                const item = getRandomItem('comum');
+                if (item) {
+                    addLog(`🍽️ Encontrou comida: ${item.emoji} ${item.name}`);
+                    addItemToInventory(item);
+                } else {
+                    addLog('🌵 Só cactos espinhosos por aqui...');
+                }
+            }
+        }
+
+        function chopTree() {
+            const roll = rollDice(8);
+            addLog(`🪓 Cortando árvore... Rolou ${roll} no D8`);
+
+            if (roll <= 2) {
+                addLog('💢 A machada quebrou! Você se machucou.');
+            } else if (roll <= 5) {
+                addLog('🌿 Caiu um galho...');
+                addItemToInventory({ name: "Galho", emoji: "🌿", type: "material" });
+            } else {
+                addLog('🎯 Madeira obtida!');
+                addItemToInventory({ name: "Madeira", emoji: "🪵", type: "material" });
+            }
+        }
+
+        function collectCactus() {
+            const roll = rollDice(6);
+            addLog(`🌵 Coletando cacto... Rolou ${roll} no D6`);
+
+            if (roll <= 2) {
+                addLog('💉 Os espinhos te machucaram! -1 de vida');
+            } else {
+                const item = getRandomItem('cacto');
+                if (item) {
+                    addLog(`🌵 Coletou do cacto: ${item.emoji} ${item.name}`);
+                    addItemToInventory(item);
+                } else {
+                    addLog('💔 O cacto estava seco...');
+                }
+            }
+        }
+
+        function searchWater() {
+            const roll = rollDice(10);
+            addLog(`💧 Procurando água... Rolou ${roll} no D10`);
+
+            if (roll <= 5) {
+                addLog('🏜️ Nenhum sinal de água... a sede aumenta.');
+            } else {
+                addLog(`💦 Encontrou: 💧 Água Suja`);
+                addItemToInventory({ name: "Água Suja", emoji: "💧", type: "consumable" });
+            }
+        }
+
+        function collect() {
+            const roll = rollDice(6);
+            addLog(`🌿 Coletando arbustos... Rolou ${roll} no D6`);
+
+            if (roll <= 2) {
+                addLog('🌱 Só folhas secas...');
+            } else {
+                const items = [
+                    { name: "Galho", emoji: "🌿", type: "material" },
+                    { name: "Ervas", emoji: "🌱", type: "material" }
+                ];
+                const item = items[Math.floor(Math.random() * items.length)];
+                addLog(`🌿 Coletou: ${item.emoji} ${item.name}`);
+                addItemToInventory(item);
+            }
+        }
+
+        function searchFridge() {
+            const roll = rollDice(8);
+            addLog(`🧊 Procurando na geladeira... Rolou ${roll} no D8`);
+
+            if (roll <= 2) {
+                addLog('💀 Geladeira cheia de insetos mortos...');
+            } else {
+                const item = getRandomItem('geladeira');
+                if (item) {
+                    addLog(`🧊 Encontrou: ${item.emoji} ${item.name}`);
+                    addItemToInventory(item);
+                } else {
+                    addLog('❄️ Só gelo derretido...');
+                }
+            }
+        }
+
+        function searchFurniture() {
+            const roll = rollDice(8);
+            addLog(`🪑 Vasculhando móveis... Rolou ${roll} no D8`);
+
+            if (roll <= 3) {
+                addLog('🕷️ Os móveis estão infestados de aranhas!');
+            } else {
+                const item = getRandomItem('moveis');
+                if (item) {
+                    addLog(`🪑 Encontrou: ${item.emoji} ${item.name}`);
+                    addItemToInventory(item);
+                } else {
+                    addLog('💨 Só poeira e memórias...');
+                }
+            }
+        }
+
+        // SISTEMA DE INVENTÁRIO
+        function addItemToInventory(item) {
+            gameState.inventory.push(item);
+            updateInventoryDisplay();
+        }
+
+        function updateInventoryDisplay() {
+            const grid = document.getElementById('inventory-grid');
+            grid.innerHTML = '';
+
+            gameState.inventory.forEach((item, index) => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item-card';
+                itemElement.innerHTML = `
+                    <div class="item-icon">${item.emoji}</div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-actions">
+                        <button class="item-btn danger" onclick="removeItem(${index})">🗑️</button>
+                        <button class="item-btn success" onclick="useItem(${index})">🔄</button>
+                    </div>
+                `;
+                grid.appendChild(itemElement);
+            });
+        }
+
+        function removeItem(index) {
+            if (index >= 0 && index < gameState.inventory.length) {
+                const removedItem = gameState.inventory.splice(index, 1)[0];
+                updateInventoryDisplay();
+                addLog(`🗑️ Descarta: ${removedItem.emoji} ${removedItem.name}`);
+            }
+        }
+
+        function useItem(index) {
+            if (index >= 0 && index < gameState.inventory.length) {
+                const item = gameState.inventory[index];
+                
+                switch(item.type) {
+                    case 'food':
+                        addLog(`🍽️ Consumiu: ${item.emoji} ${item.name} e recuperou energia!`);
+                        break;
+                    case 'consumable':
+                        addLog(`💧 Bebeu: ${item.emoji} ${item.name} e se sente melhor!`);
+                        break;
+                    case 'medical':
+                        addLog(`💊 Usou: ${item.emoji} ${item.name} - Ferimentos curados`);
+                        break;
+                    default:
+                        addLog(`🔧 Usou: ${item.emoji} ${item.name}`);
+                }
+                
+                // Remover item após uso
+                gameState.inventory.splice(index, 1);
+                updateInventoryDisplay();
+            }
+        }
+
+        // CONTROLES DO HOST
+        function assignRoles() {
+            if (!gameState.isHost) return;
+
+            const players = gameState.currentRoom.players;
+            const playerIds = Object.keys(players).filter(id => !players[id].isHost);
+
+            if (playerIds.length < 2) {
+                addLog('❌ Precisa de pelo menos 2 jogadores!');
+                return;
+            }
+
+            // Sortear assassino
+            const assassinIndex = Math.floor(Math.random() * playerIds.length);
+            
+            playerIds.forEach((id, index) => {
+                players[id].role = index === assassinIndex ? 'assassin' : 'survivor';
+            });
+
+            // Atualizar identidade do jogador atual
+            if (gameState.playerId in players) {
+                gameState.currentRole = players[gameState.playerId].role;
+                document.getElementById('role-display').textContent = `🎭 ${getRoleDisplay(gameState.currentRole)}`;
+                
+                if (gameState.currentRole === 'assassin') {
+                    addLog('🔪 VOCÊ É O ASSASSINO! Elimine os outros sem ser descoberto!', true);
+                }
+            }
+
+            addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
+            updatePlayersList();
+        }
+
+        function nextTurn() {
+            if (!gameState.isHost) return;
+
+            const game = gameState.currentRoom.game;
+            game.turn += 1;
+            game.day = Math.floor(game.turn / 3) + 1;
+            
+            // Climas aleatórios
+            const weathers = [
+                { name: "🌞 Dia Ensolarado", effect: "O calor está intenso, melhor beber água" },
+                { name: "🌧️ Chuva Rara", effect: "Água disponível, mas cuidado com doenças" },
+                { name: "🌬️ Ventania Forte", effect: "Dificuldade em explorar áreas abertas" }
+            ];
+            const newWeather = weathers[Math.floor(Math.random() * weathers.length)];
+            
+            game.weather = newWeather.name;
+            game.weatherEffect = newWeather.effect;
+
+            document.getElementById('weather-text').textContent = `${game.weather} - Dia ${game.day}`;
+            document.getElementById('weather-effect').textContent = game.weatherEffect;
+
+            addLog(`⏭️ Dia ${game.day} - Turno ${game.turn} iniciado`);
+            addLog(`🌤️ ${game.weather}`);
+            addLog(`📋 ${game.weatherEffect}`);
+        }
+
+        function sendRandomMessage() {
+            if (!gameState.isHost) return;
+            const messages = [
+                "🌅 O sol começa a nascer no horizonte...",
+                "🌌 As estrelas aparecem no céu escuro",
+                "💨 Uma brisa suave passa pelo acampamento",
+                "🌵 Cactos balançam lentamente ao vento"
+            ];
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            addLog(`💬 ${randomMessage}`);
+        }
+
+        function inviteAllSpectators() {
+            if (!gameState.isHost) return;
+            addLog('🎮 Todos os espectadores foram convidados para o jogo!');
+        }
+
+        // FUNÇÕES AUXILIARES
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function getRandomItem(pool) {
+            const items = itemSystem[pool];
+            if (!items) return null;
+            
+            const item = items[Math.floor(Math.random() * items.length)];
+            return Math.random() * 100 <= item.chance ? item : null;
+        }
+
+        function getRoleDisplay(role) {
+            const roles = {
+                'host': '👑 Host',
+                'survivor': '😊 Sobrevivente',
+                'assassin': '🔪 Assassino',
+                'spectator': '👁️ Espectador'
+            };
+            return roles[role] || role;
+        }
+
+        function addLog(message, isPrivate = false) {
+            const log = document.getElementById('game-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            if (isPrivate) {
+                entry.style.background = 'rgba(255, 107, 53, 0.1)';
+                entry.style.border = '1px solid var(--accent)';
+                entry.textContent = `🔒 ${message}`;
+            } else {
+                entry.textContent = message;
+            }
+            
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function rollDice(sides) {
+            const result = Math.floor(Math.random() * sides) + 1;
+            addLog(`🎲 Rolou D${sides}: ${result}`);
+            return result;
+        }
+
+        function leaveRoom() {
+            gameState.roomId = null;
+            gameState.playerId = null;
+            gameState.isHost = false;
+            gameState.currentRoom = null;
+            gameState.inventory = [];
+            
+            document.getElementById('room-system').style.display = 'block';
+            document.getElementById('room-management').style.display = 'none';
+            document.getElementById('leave-room-btn').style.display = 'none';
+            document.getElementById('host-controls').style.display = 'none';
+            document.getElementById('room-code-display').style.display = 'none';
+            document.getElementById('weather-event').style.display = 'none';
+            document.getElementById('role-display').textContent = 'Aguardando sorteio...';
+            
+            updateInventoryDisplay();
+            addLog('🚪 Você saiu da sala');
+        }
+
+        // FUNÇÕES GLOBAIS
+        window.kickPlayer = function(playerId) {
+            if (!gameState.isHost) return;
+            delete gameState.currentRoom.players[playerId];
+            updatePlayersList();
+            addLog('🚫 Jogador removido da sala');
+        };
+
+        window.viewPlayerInventory = function(playerId, playerName) {
+            if (!gameState.isHost) return;
+
+            const player = gameState.currentRoom.players[playerId];
+            const modal = document.getElementById('player-inventory-modal');
+            const modalName = document.getElementById('modal-player-name');
+            const modalGrid = document.getElementById('modal-inventory-grid');
+
+            modalName.textContent = `🎒 Inventário de ${playerName}`;
+            modalGrid.innerHTML = '';
+
+            (player.inventory || []).forEach((item, index) => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item-card';
+                itemElement.innerHTML = `
+                    <div class="item-icon">${item.emoji}</div>
+                    <div class="item-name">${item.name}</div>
+                `;
+                modalGrid.appendChild(itemElement);
+            });
+
+            modal.style.display = 'flex';
+        };
+
+        window.closePlayerInventory = function() {
+            const modal = document.getElementById('player-inventory-modal');
+            modal.style.display = 'none';
+        };
+
+        window.removeItem = removeItem;
+        window.useItem = useItem;
+    </script>
+</body>
+</html>
