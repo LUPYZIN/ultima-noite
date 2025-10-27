@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ULTIMA NOITE - RPG</title>
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK Corrigido -->
     <script type="module">
-        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getDatabase, ref, set, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
             authDomain: "ultima-noite-f2867.firebaseapp.com",
@@ -23,11 +21,10 @@
             measurementId: "G-J8XZBFZH32"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
         
-        // Make Firebase functions available globally
+        // Exportar Firebase CORRETAMENTE
         window.firebase = {
             database,
             ref,
@@ -35,10 +32,18 @@
             push,
             onValue,
             update,
-            remove
+            remove,
+            get
         };
         
         console.log("Firebase inicializado com sucesso!");
+        
+        // Inicializar o jogo quando Firebase estiver pronto
+        setTimeout(() => {
+            if (typeof window.checkFirebase === 'function') {
+                window.checkFirebase();
+            }
+        }, 1000);
     </script>
 
     <style>
@@ -630,14 +635,13 @@
     </div>
 
     <script>
-        // Sistema de dados com Firebase
+        // Sistema de dados CORRIGIDO
         const gameState = {
             roomId: null,
             playerId: null,
             isHost: false,
             isSpectator: false,
             currentRole: null,
-            usedNames: new Set(),
             inventory: [],
             currentRoom: null,
             firebaseReady: false
@@ -653,13 +657,11 @@
             ],
             geladeira: [
                 { name: "Refrigerante", emoji: "🥤", chance: 20, type: "consumable" },
-                { name: "Iogurte Vencido", emoji: "🥛", chance: 15, type: "food" },
-                { name: "Sardinha Enlatada", emoji: "🐟", chance: 10, type: "food" }
+                { name: "Iogurte Vencido", emoji: "🥛", chance: 15, type: "food" }
             ],
             moveis: [
                 { name: "Garrafa Vazia", emoji: "🍾", chance: 20, type: "material" },
-                { name: "Chave Velha", emoji: "🔑", chance: 10, type: "tool" },
-                { name: "Bandagem Suja", emoji: "🩹", chance: 8, type: "medical" }
+                { name: "Chave Velha", emoji: "🔑", chance: 10, type: "tool" }
             ],
             cacto: [
                 { name: "Água de Cacto", emoji: "💦", chance: 40, type: "consumable" },
@@ -667,28 +669,13 @@
             ]
         };
 
-        // Sistema de mensagens
-        const messageSystem = {
-            explore: [
-                "🔍 Você vasculha a área e encontra algo útil!",
-                "🏜️ Encontrou alguns itens abandonados...",
-                "📦 Há algo brilhando na areia!"
-            ],
-            failure: [
-                "💨 Nada de útil por aqui...",
-                "🏜️ Só areia e mais areia...",
-                "🌵 Apenas cactos espinhosos..."
-            ]
-        };
-
-        // INICIALIZAÇÃO
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("Menu Principal Carregado - Aguardando Firebase...");
+        // INICIALIZAÇÃO CORRIGIDA
+        window.checkFirebase = function() {
+            console.log("Verificando Firebase...");
             
-            // Verificar se Firebase está carregado
-            const checkFirebase = setInterval(() => {
+            const checkInterval = setInterval(() => {
                 if (window.firebase) {
-                    clearInterval(checkFirebase);
+                    clearInterval(checkInterval);
                     gameState.firebaseReady = true;
                     updateConnectionStatus(true);
                     console.log("Firebase carregado - Inicializando Event Listeners");
@@ -696,15 +683,19 @@
                 }
             }, 100);
             
-            // Timeout para Firebase
             setTimeout(() => {
                 if (!gameState.firebaseReady) {
                     console.error("Firebase não carregou a tempo");
                     updateConnectionStatus(false);
-                    // Continuar mesmo sem Firebase (modo offline)
                     initializeEventListeners();
                 }
             }, 5000);
+        };
+
+        // Iniciar verificação quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Página carregada - Iniciando verificação do Firebase");
+            window.checkFirebase();
         });
 
         function updateConnectionStatus(connected) {
@@ -763,7 +754,7 @@
             console.log("Event listeners inicializados com sucesso");
         }
 
-        // SISTEMA DE SALAS com Firebase
+        // SISTEMA DE SALAS CORRIGIDO
         async function createRoom() {
             console.log("Tentando criar sala...");
             
@@ -774,7 +765,7 @@
             }
 
             const roomName = document.getElementById('new-room-name').value.trim();
-            let hostName = document.getElementById('host-name').value.trim();
+            const hostName = document.getElementById('host-name').value.trim();
 
             if (!roomName || !hostName) {
                 addLog('❌ Preencha todos os campos!');
@@ -782,13 +773,11 @@
             }
 
             try {
-                // Gerar ID único para sala
                 const roomId = generateRoomId();
                 gameState.roomId = roomId;
                 gameState.isHost = true;
                 gameState.playerId = 'host_' + Date.now();
                 
-                // Criar sala no Firebase
                 const roomData = {
                     name: roomName,
                     host: hostName,
@@ -806,45 +795,41 @@
                         turn: 1,
                         day: 1,
                         weather: "🌞 Dia Ensolarado",
-                        weatherEffect: "Calor intenso - Consumo de água dobrado",
-                        phase: 'day'
+                        weatherEffect: "Calor intenso - Consumo de água dobrado"
                     },
                     createdAt: Date.now()
                 };
 
-                await window.firebase.set(window.firebase.ref(window.firebase.database, `rooms/${roomId}`), roomData);
-                
-                // Escutar mudanças na sala
+                await window.firebase.set(
+                    window.firebase.ref(window.firebase.database, `rooms/${roomId}`), 
+                    roomData
+                );
+
                 listenToRoomChanges(roomId);
-                
                 updateUIForRoom(roomId);
                 addLog(`✅ Sala "${roomName}" criada com sucesso!`);
                 addLog(`🔑 Código da sala: ${roomId}`);
-                addLog(`👑 Você é o host - Controle o jogo!`);
                 
             } catch (error) {
                 console.error("Erro ao criar sala:", error);
-                addLog('❌ Erro ao criar sala. Tentando modo offline...');
-                createRoomOffline();
+                addLog('❌ Erro ao criar sala');
             }
         }
 
         function createRoomOffline() {
             const roomName = document.getElementById('new-room-name').value.trim();
-            let hostName = document.getElementById('host-name').value.trim();
+            const hostName = document.getElementById('host-name').value.trim();
 
             if (!roomName || !hostName) {
                 addLog('❌ Preencha todos os campos!');
                 return;
             }
 
-            // Gerar ID único para sala
             const roomId = generateRoomId();
             gameState.roomId = roomId;
             gameState.isHost = true;
             gameState.playerId = 'host_' + Date.now();
             
-            // Criar sala local
             gameState.currentRoom = {
                 id: roomId,
                 name: roomName,
@@ -862,17 +847,14 @@
                     turn: 1,
                     day: 1,
                     weather: "🌞 Dia Ensolarado",
-                    weatherEffect: "Calor intenso - Consumo de água dobrado",
-                    phase: 'day'
+                    weatherEffect: "Calor intenso - Consumo de água dobrado"
                 }
             };
 
             updateUIForRoom(roomId);
             addLog(`✅ Sala "${roomName}" criada com sucesso! (Modo Offline)`);
             addLog(`🔑 Código da sala: ${roomId}`);
-            addLog(`👑 Você é o host - Controle o jogo!`);
             
-            // Simular atualização da lista de jogadores
             updatePlayersList();
         }
 
@@ -886,7 +868,7 @@
             }
 
             const roomId = document.getElementById('room-id').value.trim();
-            let playerName = document.getElementById('player-name').value.trim();
+            const playerName = document.getElementById('player-name').value.trim();
 
             if (!roomId || !playerName) {
                 addLog('❌ Preencha todos os campos!');
@@ -894,31 +876,26 @@
             }
 
             try {
-                // Verificar se sala existe no Firebase
                 const roomRef = window.firebase.ref(window.firebase.database, `rooms/${roomId}`);
-                
-                const snapshot = await new Promise((resolve) => {
-                    window.firebase.onValue(roomRef, resolve, { onlyOnce: true });
-                });
+                const snapshot = await window.firebase.get(roomRef);
 
                 if (!snapshot.exists()) {
-                    addLog('❌ Sala não encontrada! Verifique o código da sala.');
+                    addLog('❌ Sala não encontrada!');
                     return;
                 }
 
                 const roomData = snapshot.val();
-                
-                // Verificar se há vagas
                 const playerCount = Object.keys(roomData.players || {}).length;
+                
                 if (playerCount >= 6) {
-                    addLog('❌ Sala cheia! Máximo de 6 jogadores.');
+                    addLog('❌ Sala cheia! Máximo 6 jogadores.');
                     return;
                 }
 
                 gameState.roomId = roomId;
                 gameState.playerId = 'player_' + Date.now();
-                
-                // Adicionar jogador à sala no Firebase
+                gameState.isHost = false;
+
                 const playerData = {
                     name: playerName,
                     role: 'survivor',
@@ -933,38 +910,34 @@
                     playerData
                 );
 
-                // Escutar mudanças na sala
                 listenToRoomChanges(roomId);
-                
                 updateUIForRoom(roomId);
                 addLog(`✅ Entrou na sala como ${playerName}`);
                 
             } catch (error) {
                 console.error("Erro ao entrar na sala:", error);
-                addLog('❌ Erro ao entrar na sala. Tentando modo offline...');
-                joinRoomOffline();
+                addLog('❌ Erro ao entrar na sala');
             }
         }
 
         function joinRoomOffline() {
             const roomId = document.getElementById('room-id').value.trim();
-            let playerName = document.getElementById('player-name').value.trim();
+            const playerName = document.getElementById('player-name').value.trim();
 
             if (!roomId || !playerName) {
                 addLog('❌ Preencha todos os campos!');
                 return;
             }
 
-            // Simular verificação de sala
             if (!gameState.currentRoom || gameState.currentRoom.id !== roomId) {
-                addLog('❌ Sala não encontrada! Crie uma sala primeiro.');
+                addLog('❌ Sala não encontrada!');
                 return;
             }
 
             gameState.roomId = roomId;
             gameState.playerId = 'player_' + Date.now();
-            
-            // Adicionar jogador à sala
+            gameState.isHost = false;
+
             gameState.currentRoom.players[gameState.playerId] = {
                 name: playerName,
                 role: 'survivor',
@@ -985,24 +958,20 @@
                 if (snapshot.exists()) {
                     const roomData = snapshot.val();
                     gameState.currentRoom = roomData;
-                    gameState.currentRoom.id = roomId;
                     
                     updatePlayersList();
                     updateGameState(roomData.game);
                     
-                    // Atualizar identidade do jogador atual
-                    if (gameState.playerId in roomData.players) {
+                    if (roomData.players && roomData.players[gameState.playerId]) {
                         const player = roomData.players[gameState.playerId];
                         gameState.currentRole = player.role;
-                        document.getElementById('role-display').textContent = `🎭 ${getRoleDisplay(gameState.currentRole)}`;
+                        gameState.inventory = player.inventory || [];
                         
-                        if (player.inventory) {
-                            gameState.inventory = player.inventory;
-                            updateInventoryDisplay();
-                        }
+                        document.getElementById('role-display').textContent = `🎭 ${getRoleDisplay(player.role)}`;
+                        updateInventoryDisplay();
                     }
                 } else {
-                    addLog('❌ A sala foi fechada pelo host.');
+                    addLog('❌ A sala foi fechada!');
                     leaveRoom();
                 }
             });
@@ -1029,11 +998,11 @@
         }
 
         function updatePlayersList() {
-            if (!gameState.currentRoom) return;
+            if (!gameState.currentRoom || !gameState.currentRoom.players) return;
             
             const list = document.getElementById('players-list');
             list.innerHTML = '';
-            const players = gameState.currentRoom.players || {};
+            const players = gameState.currentRoom.players;
 
             Object.entries(players).forEach(([id, player]) => {
                 const playerElement = document.createElement('div');
@@ -1064,138 +1033,143 @@
                 `Jogadores: ${Object.keys(players).length}/6`;
         }
 
-        // SISTEMA DE AÇÕES DO JOGO
-        function explore() {
+        // SISTEMA DE AÇÕES DO JOGO CORRIGIDO
+        async function explore() {
+            if (!canPerformAction()) return;
+            
             const roll = rollDice(20);
             addLog(`🔍 Vasculhando... Rolou ${roll} no D20`);
 
-            if (roll <= 12) {
-                const message = messageSystem.failure[Math.floor(Math.random() * messageSystem.failure.length)];
-                addLog(message);
-            } else {
-                const itemPool = ['comum', 'moveis'][Math.floor(Math.random() * 2)];
-                const item = getRandomItem(itemPool);
+            if (roll > 12) {
+                const item = getRandomItem('comum');
                 if (item) {
-                    addLog(`🎉 ${messageSystem.explore[Math.floor(Math.random() * messageSystem.explore.length]}`);
-                    addLog(`📦 Encontrou: ${item.emoji} ${item.name}`);
-                    addItemToInventory(item);
+                    addLog(`🎉 Encontrou: ${item.emoji} ${item.name}`);
+                    await addItemToInventory(item);
                 }
+            } else {
+                addLog('💨 Nada de útil encontrado...');
             }
         }
 
-        function searchFood() {
+        async function searchFood() {
+            if (!canPerformAction()) return;
+            
             const roll = rollDice(8);
             addLog(`🍖 Procurando comida... Rolou ${roll} no D8`);
 
-            if (roll <= 3) {
-                addLog('🐍 Um animal perigoso te afugentou!');
-            } else {
+            if (roll > 3) {
                 const item = getRandomItem('comum');
                 if (item) {
-                    addLog(`🍽️ Encontrou comida: ${item.emoji} ${item.name}`);
-                    addItemToInventory(item);
-                } else {
-                    addLog('🌵 Só cactos espinhosos por aqui...');
+                    addLog(`🍽️ Encontrou: ${item.emoji} ${item.name}`);
+                    await addItemToInventory(item);
                 }
+            } else {
+                addLog('🐍 Um animal te afugentou!');
             }
         }
 
-        function chopTree() {
+        async function chopTree() {
+            if (!canPerformAction()) return;
+            
             const roll = rollDice(8);
             addLog(`🪓 Cortando árvore... Rolou ${roll} no D8`);
 
-            if (roll <= 2) {
-                addLog('💢 A machada quebrou! Você se machucou.');
-            } else if (roll <= 5) {
-                addLog('🌿 Caiu um galho...');
-                addItemToInventory({ name: "Galho", emoji: "🌿", type: "material" });
-            } else {
+            if (roll > 2) {
                 addLog('🎯 Madeira obtida!');
-                addItemToInventory({ name: "Madeira", emoji: "🪵", type: "material" });
+                await addItemToInventory({ name: "Madeira", emoji: "🪵", type: "material" });
+            } else {
+                addLog('💢 A machada quebrou!');
             }
         }
 
-        function collectCactus() {
+        async function collectCactus() {
+            if (!canPerformAction()) return;
+            
             const roll = rollDice(6);
             addLog(`🌵 Coletando cacto... Rolou ${roll} no D6`);
 
-            if (roll <= 2) {
-                addLog('💉 Os espinhos te machucaram! -1 de vida');
-            } else {
+            if (roll > 2) {
                 const item = getRandomItem('cacto');
                 if (item) {
-                    addLog(`🌵 Coletou do cacto: ${item.emoji} ${item.name}`);
-                    addItemToInventory(item);
-                } else {
-                    addLog('💔 O cacto estava seco...');
+                    addLog(`🌵 Coletou: ${item.emoji} ${item.name}`);
+                    await addItemToInventory(item);
                 }
+            } else {
+                addLog('💉 Os espinhos te machucaram!');
             }
         }
 
-        function searchWater() {
+        async function searchWater() {
+            if (!canPerformAction()) return;
+            
             const roll = rollDice(10);
             addLog(`💧 Procurando água... Rolou ${roll} no D10`);
 
-            if (roll <= 5) {
-                addLog('🏜️ Nenhum sinal de água... a sede aumenta.');
+            if (roll > 5) {
+                addLog(`💦 Encontrou água!`);
+                await addItemToInventory({ name: "Água Suja", emoji: "💧", type: "consumable" });
             } else {
-                addLog(`💦 Encontrou: 💧 Água Suja`);
-                addItemToInventory({ name: "Água Suja", emoji: "💧", type: "consumable" });
+                addLog('🏜️ Nenhum sinal de água...');
             }
         }
 
-        function collect() {
+        async function collect() {
+            if (!canPerformAction()) return;
+            
             const roll = rollDice(6);
             addLog(`🌿 Coletando arbustos... Rolou ${roll} no D6`);
 
-            if (roll <= 2) {
-                addLog('🌱 Só folhas secas...');
+            if (roll > 2) {
+                addLog('🌿 Galhos coletados!');
+                await addItemToInventory({ name: "Galho", emoji: "🌿", type: "material" });
             } else {
-                const items = [
-                    { name: "Galho", emoji: "🌿", type: "material" },
-                    { name: "Ervas", emoji: "🌱", type: "material" }
-                ];
-                const item = items[Math.floor(Math.random() * items.length)];
-                addLog(`🌿 Coletou: ${item.emoji} ${item.name}`);
-                addItemToInventory(item);
+                addLog('🌱 Só folhas secas...');
             }
         }
 
-        function searchFridge() {
+        async function searchFridge() {
+            if (!canPerformAction()) return;
+            
             const roll = rollDice(8);
             addLog(`🧊 Procurando na geladeira... Rolou ${roll} no D8`);
 
-            if (roll <= 2) {
-                addLog('💀 Geladeira cheia de insetos mortos...');
-            } else {
+            if (roll > 2) {
                 const item = getRandomItem('geladeira');
                 if (item) {
                     addLog(`🧊 Encontrou: ${item.emoji} ${item.name}`);
-                    addItemToInventory(item);
-                } else {
-                    addLog('❄️ Só gelo derretido...');
+                    await addItemToInventory(item);
                 }
+            } else {
+                addLog('💀 Só coisas estragadas...');
             }
         }
 
-        function searchFurniture() {
+        async function searchFurniture() {
+            if (!canPerformAction()) return;
+            
             const roll = rollDice(8);
             addLog(`🪑 Vasculhando móveis... Rolou ${roll} no D8`);
 
-            if (roll <= 3) {
-                addLog('🕷️ Os móveis estão infestados de aranhas!');
-            } else {
+            if (roll > 3) {
                 const item = getRandomItem('moveis');
                 if (item) {
                     addLog(`🪑 Encontrou: ${item.emoji} ${item.name}`);
-                    addItemToInventory(item);
-                } else {
-                    addLog('💨 Só poeira e memórias...');
+                    await addItemToInventory(item);
                 }
+            } else {
+                addLog('🕷️ Só aranhas...');
             }
         }
 
-        // SISTEMA DE INVENTÁRIO
+        function canPerformAction() {
+            if (!gameState.roomId || !gameState.playerId) {
+                addLog('❌ Entre em uma sala primeiro!');
+                return false;
+            }
+            return true;
+        }
+
+        // SISTEMA DE INVENTÁRIO CORRIGIDO
         async function addItemToInventory(item) {
             gameState.inventory.push(item);
             
@@ -1206,7 +1180,7 @@
                         gameState.inventory
                     );
                 } catch (error) {
-                    console.error("Erro ao atualizar inventário no Firebase:", error);
+                    console.error("Erro ao salvar inventário:", error);
                 }
             }
             
@@ -1232,65 +1206,12 @@
             });
         }
 
-        async function removeItem(index) {
-            if (index >= 0 && index < gameState.inventory.length) {
-                const removedItem = gameState.inventory.splice(index, 1)[0];
-                
-                if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
-                    try {
-                        await window.firebase.set(
-                            window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
-                            gameState.inventory
-                        );
-                    } catch (error) {
-                        console.error("Erro ao atualizar inventário no Firebase:", error);
-                    }
-                }
-                
-                updateInventoryDisplay();
-                addLog(`🗑️ Descarta: ${removedItem.emoji} ${removedItem.name}`);
-            }
-        }
-
-        async function useItem(index) {
-            if (index >= 0 && index < gameState.inventory.length) {
-                const item = gameState.inventory[index];
-                
-                switch(item.type) {
-                    case 'food':
-                        addLog(`🍽️ Consumiu: ${item.emoji} ${item.name} e recuperou energia!`);
-                        break;
-                    case 'consumable':
-                        addLog(`💧 Bebeu: ${item.emoji} ${item.name} e se sente melhor!`);
-                        break;
-                    case 'medical':
-                        addLog(`💊 Usou: ${item.emoji} ${item.name} - Ferimentos curados`);
-                        break;
-                    default:
-                        addLog(`🔧 Usou: ${item.emoji} ${item.name}`);
-                }
-                
-                // Remover item após uso
-                gameState.inventory.splice(index, 1);
-                
-                if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
-                    try {
-                        await window.firebase.set(
-                            window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
-                            gameState.inventory
-                        );
-                    } catch (error) {
-                        console.error("Erro ao atualizar inventário no Firebase:", error);
-                    }
-                }
-                
-                updateInventoryDisplay();
-            }
-        }
-
-        // CONTROLES DO HOST
+        // CONTROLES DO HOST CORRIGIDOS
         async function assignRoles() {
-            if (!gameState.isHost) return;
+            if (!gameState.isHost) {
+                addLog('❌ Apenas o host pode sortear papéis!');
+                return;
+            }
 
             const players = gameState.currentRoom.players;
             const playerIds = Object.keys(players).filter(id => !players[id].isHost);
@@ -1300,97 +1221,53 @@
                 return;
             }
 
-            // Sortear assassino
             const assassinIndex = Math.floor(Math.random() * playerIds.length);
-            
             const updates = {};
+
             playerIds.forEach((id, index) => {
                 const role = index === assassinIndex ? 'assassin' : 'survivor';
-                updates[`rooms/${gameState.roomId}/players/${id}/role`] = role;
+                updates[`/rooms/${gameState.roomId}/players/${id}/role`] = role;
             });
 
-            if (gameState.firebaseReady) {
-                try {
-                    await window.firebase.update(window.firebase.ref(window.firebase.database), updates);
-                } catch (error) {
-                    console.error("Erro ao sortear papéis no Firebase:", error);
-                    addLog('❌ Erro ao sortear papéis.');
-                }
-            } else {
-                // Modo offline
-                playerIds.forEach((id, index) => {
-                    players[id].role = index === assassinIndex ? 'assassin' : 'survivor';
-                });
-                updatePlayersList();
+            try {
+                await window.firebase.update(window.firebase.ref(window.firebase.database), updates);
+                addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
+            } catch (error) {
+                console.error("Erro:", error);
+                addLog('❌ Erro ao sortear papéis');
             }
-
-            // Atualizar identidade do jogador atual
-            if (gameState.playerId in players) {
-                gameState.currentRole = players[gameState.playerId].role;
-                document.getElementById('role-display').textContent = `🎭 ${getRoleDisplay(gameState.currentRole)}`;
-                
-                if (gameState.currentRole === 'assassin') {
-                    addLog('🔪 VOCÊ É O ASSASSINO! Elimine os outros sem ser descoberto!', true);
-                }
-            }
-
-            addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
         }
 
         async function nextTurn() {
-            if (!gameState.isHost) return;
+            if (!gameState.isHost) {
+                addLog('❌ Apenas o host pode avançar turnos!');
+                return;
+            }
 
             const game = gameState.currentRoom.game;
             game.turn += 1;
             game.day = Math.floor(game.turn / 3) + 1;
             
-            // Climas aleatórios
             const weathers = [
-                { name: "🌞 Dia Ensolarado", effect: "O calor está intenso, melhor beber água" },
-                { name: "🌧️ Chuva Rara", effect: "Água disponível, mas cuidado com doenças" },
-                { name: "🌬️ Ventania Forte", effect: "Dificuldade em explorar áreas abertas" }
+                { name: "🌞 Dia Ensolarado", effect: "Calor intenso" },
+                { name: "🌧️ Chuva Rara", effect: "Água disponível" },
+                { name: "🌬️ Ventania Forte", effect: "Dificuldade em explorar" }
             ];
             const newWeather = weathers[Math.floor(Math.random() * weathers.length)];
             
             game.weather = newWeather.name;
             game.weatherEffect = newWeather.effect;
 
-            if (gameState.firebaseReady) {
-                try {
-                    await window.firebase.update(window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/game`), {
-                        turn: game.turn,
-                        day: game.day,
-                        weather: game.weather,
-                        weatherEffect: game.weatherEffect
-                    });
-                } catch (error) {
-                    console.error("Erro ao avançar turno no Firebase:", error);
-                }
+            try {
+                await window.firebase.update(
+                    window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/game`),
+                    game
+                );
+                addLog(`⏭️ Dia ${game.day} - Turno ${game.turn} iniciado`);
+            } catch (error) {
+                console.error("Erro:", error);
+                addLog('❌ Erro ao avançar turno');
             }
-
-            document.getElementById('weather-text').textContent = `${game.weather} - Dia ${game.day}`;
-            document.getElementById('weather-effect').textContent = game.weatherEffect;
-
-            addLog(`⏭️ Dia ${game.day} - Turno ${game.turn} iniciado`);
-            addLog(`🌤️ ${game.weather}`);
-            addLog(`📋 ${game.weatherEffect}`);
-        }
-
-        function sendRandomMessage() {
-            if (!gameState.isHost) return;
-            const messages = [
-                "🌅 O sol começa a nascer no horizonte...",
-                "🌌 As estrelas aparecem no céu escuro",
-                "💨 Uma brisa suave passa pelo acampamento",
-                "🌵 Cactos balançam lentamente ao vento"
-            ];
-            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-            addLog(`💬 ${randomMessage}`);
-        }
-
-        function inviteAllSpectators() {
-            if (!gameState.isHost) return;
-            addLog('🎮 Todos os espectadores foram convidados para o jogo!');
         }
 
         // FUNÇÕES AUXILIARES
@@ -1401,9 +1278,7 @@
         function getRandomItem(pool) {
             const items = itemSystem[pool];
             if (!items) return null;
-            
-            const item = items[Math.floor(Math.random() * items.length)];
-            return Math.random() * 100 <= item.chance ? item : null;
+            return items[Math.floor(Math.random() * items.length)];
         }
 
         function getRoleDisplay(role) {
@@ -1416,19 +1291,11 @@
             return roles[role] || role;
         }
 
-        function addLog(message, isPrivate = false) {
+        function addLog(message) {
             const log = document.getElementById('game-log');
             const entry = document.createElement('div');
             entry.className = 'log-entry';
-            
-            if (isPrivate) {
-                entry.style.background = 'rgba(255, 107, 53, 0.1)';
-                entry.style.border = '1px solid var(--accent)';
-                entry.textContent = `🔒 ${message}`;
-            } else {
-                entry.textContent = message;
-            }
-            
+            entry.textContent = message;
             log.appendChild(entry);
             log.scrollTop = log.scrollHeight;
         }
@@ -1442,36 +1309,22 @@
         async function leaveRoom() {
             if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
                 try {
-                    // Remover jogador da sala no Firebase
                     await window.firebase.remove(
                         window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}`)
                     );
-                    
-                    // Se for o host e for o último jogador, deletar a sala
-                    if (gameState.isHost) {
-                        const roomRef = window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}`);
-                        const snapshot = await new Promise((resolve) => {
-                            window.firebase.onValue(roomRef, resolve, { onlyOnce: true });
-                        });
-                        
-                        if (snapshot.exists()) {
-                            const roomData = snapshot.val();
-                            if (Object.keys(roomData.players || {}).length === 0) {
-                                await window.firebase.remove(roomRef);
-                            }
-                        }
-                    }
                 } catch (error) {
-                    console.error("Erro ao sair da sala no Firebase:", error);
+                    console.error("Erro ao sair:", error);
                 }
             }
 
+            // Resetar estado
             gameState.roomId = null;
             gameState.playerId = null;
             gameState.isHost = false;
             gameState.currentRoom = null;
             gameState.inventory = [];
             
+            // Resetar UI
             document.getElementById('room-system').style.display = 'block';
             document.getElementById('room-management').style.display = 'none';
             document.getElementById('leave-room-btn').style.display = 'none';
@@ -1484,25 +1337,34 @@
             addLog('🚪 Você saiu da sala');
         }
 
+        function sendRandomMessage() {
+            if (!gameState.isHost) return;
+            const messages = [
+                "🌅 O sol começa a nascer no horizonte...",
+                "🌌 As estrelas aparecem no céu escuro",
+                "💨 Uma brisa suave passa pelo acampamento"
+            ];
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            addLog(`💬 ${randomMessage}`);
+        }
+
+        function inviteAllSpectators() {
+            if (!gameState.isHost) return;
+            addLog('🎮 Todos os espectadores foram convidados para o jogo!');
+        }
+
         // FUNÇÕES GLOBAIS
         window.kickPlayer = async function(playerId) {
             if (!gameState.isHost) return;
             
-            if (gameState.firebaseReady) {
-                try {
-                    await window.firebase.remove(
-                        window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${playerId}`)
-                    );
-                    addLog('🚫 Jogador removido da sala');
-                } catch (error) {
-                    console.error("Erro ao remover jogador:", error);
-                    addLog('❌ Erro ao remover jogador');
-                }
-            } else {
-                // Modo offline
-                delete gameState.currentRoom.players[playerId];
-                updatePlayersList();
+            try {
+                await window.firebase.remove(
+                    window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${playerId}`)
+                );
                 addLog('🚫 Jogador removido da sala');
+            } catch (error) {
+                console.error("Erro:", error);
+                addLog('❌ Erro ao remover jogador');
             }
         };
 
@@ -1535,8 +1397,47 @@
             modal.style.display = 'none';
         };
 
-        window.removeItem = removeItem;
-        window.useItem = useItem;
+        window.removeItem = async function(index) {
+            if (index >= 0 && index < gameState.inventory.length) {
+                const removedItem = gameState.inventory.splice(index, 1)[0];
+                
+                if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
+                    try {
+                        await window.firebase.set(
+                            window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
+                            gameState.inventory
+                        );
+                    } catch (error) {
+                        console.error("Erro:", error);
+                    }
+                }
+                
+                updateInventoryDisplay();
+                addLog(`🗑️ Descarta: ${removedItem.emoji} ${removedItem.name}`);
+            }
+        };
+
+        window.useItem = async function(index) {
+            if (index >= 0 && index < gameState.inventory.length) {
+                const item = gameState.inventory[index];
+                addLog(`🔧 Usou: ${item.emoji} ${item.name}`);
+                
+                gameState.inventory.splice(index, 1);
+                
+                if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
+                    try {
+                        await window.firebase.set(
+                            window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
+                            gameState.inventory
+                        );
+                    } catch (error) {
+                        console.error("Erro:", error);
+                    }
+                }
+                
+                updateInventoryDisplay();
+            }
+        };
     </script>
 </body>
 </html>
