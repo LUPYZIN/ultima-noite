@@ -44,6 +44,7 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            transition: opacity 0.5s ease;
         }
 
         .title-animation {
@@ -674,9 +675,16 @@
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
-                document.getElementById('splash-screen').style.display = 'none';
-                document.getElementById('main-container').style.display = 'grid';
-                initializeEventListeners();
+                const splashScreen = document.getElementById('splash-screen');
+                const mainContainer = document.getElementById('main-container');
+                
+                splashScreen.style.opacity = '0';
+                
+                setTimeout(function() {
+                    splashScreen.style.display = 'none';
+                    mainContainer.style.display = 'grid';
+                    initializeEventListeners();
+                }, 500);
             }, 2000);
         });
 
@@ -712,6 +720,11 @@
 
             // Modal
             document.querySelector('.close-modal').addEventListener('click', closePlayerInventory);
+            
+            // Fechar modal ao clicar fora
+            document.getElementById('player-inventory-modal').addEventListener('click', function(e) {
+                if (e.target === this) closePlayerInventory();
+            });
         }
 
         // SISTEMA DE SALAS (Offline)
@@ -1208,6 +1221,9 @@
             const modal = document.getElementById('player-inventory-modal');
             modal.style.display = 'none';
         };
+
+        window.removeItem = removeItem;
+        window.useItem = useItem;
     </script>
 </body>
 </html>
