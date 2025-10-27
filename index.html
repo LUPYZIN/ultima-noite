@@ -44,6 +44,7 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            opacity: 1;
             transition: opacity 0.5s ease;
         }
 
@@ -55,6 +56,7 @@
             background: linear-gradient(45deg, var(--accent), var(--danger));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
             text-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
             line-height: 1.2;
             margin-bottom: 1rem;
@@ -87,6 +89,12 @@
             grid-template-columns: 300px 1fr 350px;
             grid-template-rows: auto 1fr;
             min-height: 100vh;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .container.visible {
+            opacity: 1;
         }
 
         .panel {
@@ -672,18 +680,25 @@
             ]
         };
 
-        // Inicialização
+        // Inicialização - CORREÇÃO PRINCIPAL
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
                 const splashScreen = document.getElementById('splash-screen');
                 const mainContainer = document.getElementById('main-container');
                 
+                // Inicia a transição de fade-out
                 splashScreen.style.opacity = '0';
                 
+                // Aguarda a transição terminar antes de mostrar o container principal
                 setTimeout(function() {
                     splashScreen.style.display = 'none';
                     mainContainer.style.display = 'grid';
-                    initializeEventListeners();
+                    
+                    // Aguarda um frame para garantir que o display:grid foi aplicado
+                    requestAnimationFrame(function() {
+                        mainContainer.classList.add('visible');
+                        initializeEventListeners();
+                    });
                 }, 500);
             }, 2000);
         });
