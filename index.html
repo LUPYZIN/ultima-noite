@@ -69,6 +69,47 @@
             animation: fadeIn 2s ease-in-out 1s both;
         }
 
+        /* Botão de contingência */
+        .contingency-btn {
+            position: absolute;
+            bottom: 40px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--accent), var(--danger));
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease 4s forwards;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1001;
+        }
+
+        .contingency-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 107, 53, 0.6);
+        }
+
+        .contingency-btn:active {
+            transform: translateY(0);
+        }
+
+        .contingency-btn .icon {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .contingency-btn:hover .icon {
+            transform: rotate(90deg);
+        }
+
         @keyframes fadeInScale {
             0% { opacity: 0; transform: scale(0.8); }
             100% { opacity: 1; transform: scale(1); }
@@ -77,6 +118,11 @@
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* Layout Principal */
@@ -488,6 +534,12 @@
     <div id="splash-screen">
         <div class="title-animation">ULTIMA NOITE</div>
         <div class="subtitle">SOBREVIVÊNCIA NO DESERTO</div>
+        
+        <!-- Botão de contingência -->
+        <button id="contingency-btn" class="contingency-btn">
+            <span class="icon">⚙️</span>
+            Abrir Menu
+        </button>
     </div>
 
     <!-- Interface Principal -->
@@ -682,6 +734,17 @@
 
         // Inicialização - CORREÇÃO PRINCIPAL
         document.addEventListener('DOMContentLoaded', function() {
+            let transitionCompleted = false;
+            
+            // Configurar timeout de contingência
+            const contingencyTimeout = setTimeout(function() {
+                if (!transitionCompleted) {
+                    console.log("Transição automática falhou - botão de contingência ativado");
+                    document.getElementById('contingency-btn').style.display = 'flex';
+                }
+            }, 5000); // 5 segundos
+            
+            // Transição automática
             setTimeout(function() {
                 const splashScreen = document.getElementById('splash-screen');
                 const mainContainer = document.getElementById('main-container');
@@ -697,10 +760,32 @@
                     // Aguarda um frame para garantir que o display:grid foi aplicado
                     requestAnimationFrame(function() {
                         mainContainer.classList.add('visible');
+                        transitionCompleted = true;
+                        clearTimeout(contingencyTimeout);
                         initializeEventListeners();
                     });
                 }, 500);
             }, 2000);
+            
+            // Configurar botão de contingência
+            document.getElementById('contingency-btn').addEventListener('click', function() {
+                const splashScreen = document.getElementById('splash-screen');
+                const mainContainer = document.getElementById('main-container');
+                
+                splashScreen.style.opacity = '0';
+                
+                setTimeout(function() {
+                    splashScreen.style.display = 'none';
+                    mainContainer.style.display = 'grid';
+                    
+                    requestAnimationFrame(function() {
+                        mainContainer.classList.add('visible');
+                        transitionCompleted = true;
+                        clearTimeout(contingencyTimeout);
+                        initializeEventListeners();
+                    });
+                }, 300);
+            });
         });
 
         function initializeEventListeners() {
