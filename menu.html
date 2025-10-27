@@ -4,6 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ULTIMA NOITE - RPG</title>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
+            authDomain: "ultima-noite-f2867.firebaseapp.com",
+            databaseURL: "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ultima-noite-f2867",
+            storageBucket: "ultima-noite-f2867.firebasestorage.app",
+            messagingSenderId: "553820660993",
+            appId: "1:553820660993:web:cb1019cc2361a54e4c6700",
+            measurementId: "G-J8XZBFZH32"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
+        // Make Firebase functions available globally
+        window.firebase = {
+            database,
+            ref,
+            set,
+            push,
+            onValue,
+            update,
+            remove
+        };
+        
+        console.log("Firebase inicializado com sucesso!");
+    </script>
+
     <style>
         :root {
             --bg: #0a0e14;
@@ -389,6 +426,25 @@
             margin-top: 10px;
         }
 
+        /* Status de conexão */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
         /* Responsividade */
         @media (max-width: 1200px) {
             .container {
@@ -435,6 +491,10 @@
         <header class="header panel">
             <div class="game-title">ULTIMA NOITE - SOBREVIVÊNCIA NO DESERTO</div>
             <div class="room-info">
+                <div class="connection-status">
+                    <div class="status-dot" id="connection-status"></div>
+                    <span id="connection-text">Conectando...</span>
+                </div>
                 <div id="player-count">Jogadores: 0/6</div>
                 <div id="room-status">Desconectado</div>
                 <div id="room-code-display" class="room-code" style="display: none;">Código: ...</div>
@@ -570,7 +630,7 @@
     </div>
 
     <script>
-        // Sistema de dados offline (sem Firebase por enquanto)
+        // Sistema de dados com Firebase
         const gameState = {
             roomId: null,
             playerId: null,
@@ -579,7 +639,8 @@
             currentRole: null,
             usedNames: new Set(),
             inventory: [],
-            currentRoom: null
+            currentRoom: null,
+            firebaseReady: false
         };
 
         // Sistema de itens
@@ -622,9 +683,42 @@
 
         // INICIALIZAÇÃO
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("Menu Principal Carregado");
-            initializeEventListeners();
+            console.log("Menu Principal Carregado - Aguardando Firebase...");
+            
+            // Verificar se Firebase está carregado
+            const checkFirebase = setInterval(() => {
+                if (window.firebase) {
+                    clearInterval(checkFirebase);
+                    gameState.firebaseReady = true;
+                    updateConnectionStatus(true);
+                    console.log("Firebase carregado - Inicializando Event Listeners");
+                    initializeEventListeners();
+                }
+            }, 100);
+            
+            // Timeout para Firebase
+            setTimeout(() => {
+                if (!gameState.firebaseReady) {
+                    console.error("Firebase não carregou a tempo");
+                    updateConnectionStatus(false);
+                    // Continuar mesmo sem Firebase (modo offline)
+                    initializeEventListeners();
+                }
+            }, 5000);
         });
+
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+            
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Conectado';
+            } else {
+                statusDot.className = 'status-dot';
+                statusText.textContent = 'Offline';
+            }
+        }
 
         function initializeEventListeners() {
             console.log("Inicializando event listeners...");
@@ -652,8 +746,8 @@
 
             // Dados
             document.querySelectorAll('.dice-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const dice = e.target.closest('.dice-btn').dataset.dice;
+                btn.addEventListener('click', function() {
+                    const dice = this.getAttribute('data-dice');
                     if (dice) rollDice(parseInt(dice));
                 });
             });
@@ -669,8 +763,73 @@
             console.log("Event listeners inicializados com sucesso");
         }
 
-        // SISTEMA DE SALAS (Offline)
-        function createRoom() {
+        // SISTEMA DE SALAS com Firebase
+        async function createRoom() {
+            console.log("Tentando criar sala...");
+            
+            if (!gameState.firebaseReady) {
+                addLog('⚠️ Modo offline - Criando sala local');
+                createRoomOffline();
+                return;
+            }
+
+            const roomName = document.getElementById('new-room-name').value.trim();
+            let hostName = document.getElementById('host-name').value.trim();
+
+            if (!roomName || !hostName) {
+                addLog('❌ Preencha todos os campos!');
+                return;
+            }
+
+            try {
+                // Gerar ID único para sala
+                const roomId = generateRoomId();
+                gameState.roomId = roomId;
+                gameState.isHost = true;
+                gameState.playerId = 'host_' + Date.now();
+                
+                // Criar sala no Firebase
+                const roomData = {
+                    name: roomName,
+                    host: hostName,
+                    hostId: gameState.playerId,
+                    players: {
+                        [gameState.playerId]: {
+                            name: hostName,
+                            role: 'host',
+                            isHost: true,
+                            isPlaying: true,
+                            inventory: []
+                        }
+                    },
+                    game: {
+                        turn: 1,
+                        day: 1,
+                        weather: "🌞 Dia Ensolarado",
+                        weatherEffect: "Calor intenso - Consumo de água dobrado",
+                        phase: 'day'
+                    },
+                    createdAt: Date.now()
+                };
+
+                await window.firebase.set(window.firebase.ref(window.firebase.database, `rooms/${roomId}`), roomData);
+                
+                // Escutar mudanças na sala
+                listenToRoomChanges(roomId);
+                
+                updateUIForRoom(roomId);
+                addLog(`✅ Sala "${roomName}" criada com sucesso!`);
+                addLog(`🔑 Código da sala: ${roomId}`);
+                addLog(`👑 Você é o host - Controle o jogo!`);
+                
+            } catch (error) {
+                console.error("Erro ao criar sala:", error);
+                addLog('❌ Erro ao criar sala. Tentando modo offline...');
+                createRoomOffline();
+            }
+        }
+
+        function createRoomOffline() {
             const roomName = document.getElementById('new-room-name').value.trim();
             let hostName = document.getElementById('host-name').value.trim();
 
@@ -709,7 +868,7 @@
             };
 
             updateUIForRoom(roomId);
-            addLog(`✅ Sala "${roomName}" criada com sucesso!`);
+            addLog(`✅ Sala "${roomName}" criada com sucesso! (Modo Offline)`);
             addLog(`🔑 Código da sala: ${roomId}`);
             addLog(`👑 Você é o host - Controle o jogo!`);
             
@@ -717,7 +876,77 @@
             updatePlayersList();
         }
 
-        function joinRoom() {
+        async function joinRoom() {
+            console.log("Tentando entrar na sala...");
+            
+            if (!gameState.firebaseReady) {
+                addLog('⚠️ Modo offline - Entrando em sala local');
+                joinRoomOffline();
+                return;
+            }
+
+            const roomId = document.getElementById('room-id').value.trim();
+            let playerName = document.getElementById('player-name').value.trim();
+
+            if (!roomId || !playerName) {
+                addLog('❌ Preencha todos os campos!');
+                return;
+            }
+
+            try {
+                // Verificar se sala existe no Firebase
+                const roomRef = window.firebase.ref(window.firebase.database, `rooms/${roomId}`);
+                
+                const snapshot = await new Promise((resolve) => {
+                    window.firebase.onValue(roomRef, resolve, { onlyOnce: true });
+                });
+
+                if (!snapshot.exists()) {
+                    addLog('❌ Sala não encontrada! Verifique o código da sala.');
+                    return;
+                }
+
+                const roomData = snapshot.val();
+                
+                // Verificar se há vagas
+                const playerCount = Object.keys(roomData.players || {}).length;
+                if (playerCount >= 6) {
+                    addLog('❌ Sala cheia! Máximo de 6 jogadores.');
+                    return;
+                }
+
+                gameState.roomId = roomId;
+                gameState.playerId = 'player_' + Date.now();
+                
+                // Adicionar jogador à sala no Firebase
+                const playerData = {
+                    name: playerName,
+                    role: 'survivor',
+                    isHost: false,
+                    isPlaying: true,
+                    inventory: [],
+                    joinedAt: Date.now()
+                };
+
+                await window.firebase.set(
+                    window.firebase.ref(window.firebase.database, `rooms/${roomId}/players/${gameState.playerId}`),
+                    playerData
+                );
+
+                // Escutar mudanças na sala
+                listenToRoomChanges(roomId);
+                
+                updateUIForRoom(roomId);
+                addLog(`✅ Entrou na sala como ${playerName}`);
+                
+            } catch (error) {
+                console.error("Erro ao entrar na sala:", error);
+                addLog('❌ Erro ao entrar na sala. Tentando modo offline...');
+                joinRoomOffline();
+            }
+        }
+
+        function joinRoomOffline() {
             const roomId = document.getElementById('room-id').value.trim();
             let playerName = document.getElementById('player-name').value.trim();
 
@@ -745,8 +974,45 @@
             };
 
             updateUIForRoom(roomId);
-            addLog(`✅ Entrou na sala como ${playerName}`);
+            addLog(`✅ Entrou na sala como ${playerName} (Modo Offline)`);
             updatePlayersList();
+        }
+
+        function listenToRoomChanges(roomId) {
+            const roomRef = window.firebase.ref(window.firebase.database, `rooms/${roomId}`);
+            
+            window.firebase.onValue(roomRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const roomData = snapshot.val();
+                    gameState.currentRoom = roomData;
+                    gameState.currentRoom.id = roomId;
+                    
+                    updatePlayersList();
+                    updateGameState(roomData.game);
+                    
+                    // Atualizar identidade do jogador atual
+                    if (gameState.playerId in roomData.players) {
+                        const player = roomData.players[gameState.playerId];
+                        gameState.currentRole = player.role;
+                        document.getElementById('role-display').textContent = `🎭 ${getRoleDisplay(gameState.currentRole)}`;
+                        
+                        if (player.inventory) {
+                            gameState.inventory = player.inventory;
+                            updateInventoryDisplay();
+                        }
+                    }
+                } else {
+                    addLog('❌ A sala foi fechada pelo host.');
+                    leaveRoom();
+                }
+            });
+        }
+
+        function updateGameState(gameData) {
+            if (gameData) {
+                document.getElementById('weather-text').textContent = `${gameData.weather} - Dia ${gameData.day}`;
+                document.getElementById('weather-effect').textContent = gameData.weatherEffect;
+            }
         }
 
         function updateUIForRoom(roomId) {
@@ -767,7 +1033,7 @@
             
             const list = document.getElementById('players-list');
             list.innerHTML = '';
-            const players = gameState.currentRoom.players;
+            const players = gameState.currentRoom.players || {};
 
             Object.entries(players).forEach(([id, player]) => {
                 const playerElement = document.createElement('div');
@@ -930,8 +1196,20 @@
         }
 
         // SISTEMA DE INVENTÁRIO
-        function addItemToInventory(item) {
+        async function addItemToInventory(item) {
             gameState.inventory.push(item);
+            
+            if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
+                try {
+                    await window.firebase.set(
+                        window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
+                        gameState.inventory
+                    );
+                } catch (error) {
+                    console.error("Erro ao atualizar inventário no Firebase:", error);
+                }
+            }
+            
             updateInventoryDisplay();
         }
 
@@ -954,15 +1232,27 @@
             });
         }
 
-        function removeItem(index) {
+        async function removeItem(index) {
             if (index >= 0 && index < gameState.inventory.length) {
                 const removedItem = gameState.inventory.splice(index, 1)[0];
+                
+                if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
+                    try {
+                        await window.firebase.set(
+                            window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
+                            gameState.inventory
+                        );
+                    } catch (error) {
+                        console.error("Erro ao atualizar inventário no Firebase:", error);
+                    }
+                }
+                
                 updateInventoryDisplay();
                 addLog(`🗑️ Descarta: ${removedItem.emoji} ${removedItem.name}`);
             }
         }
 
-        function useItem(index) {
+        async function useItem(index) {
             if (index >= 0 && index < gameState.inventory.length) {
                 const item = gameState.inventory[index];
                 
@@ -982,12 +1272,24 @@
                 
                 // Remover item após uso
                 gameState.inventory.splice(index, 1);
+                
+                if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
+                    try {
+                        await window.firebase.set(
+                            window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
+                            gameState.inventory
+                        );
+                    } catch (error) {
+                        console.error("Erro ao atualizar inventário no Firebase:", error);
+                    }
+                }
+                
                 updateInventoryDisplay();
             }
         }
 
         // CONTROLES DO HOST
-        function assignRoles() {
+        async function assignRoles() {
             if (!gameState.isHost) return;
 
             const players = gameState.currentRoom.players;
@@ -1001,9 +1303,26 @@
             // Sortear assassino
             const assassinIndex = Math.floor(Math.random() * playerIds.length);
             
+            const updates = {};
             playerIds.forEach((id, index) => {
-                players[id].role = index === assassinIndex ? 'assassin' : 'survivor';
+                const role = index === assassinIndex ? 'assassin' : 'survivor';
+                updates[`rooms/${gameState.roomId}/players/${id}/role`] = role;
             });
+
+            if (gameState.firebaseReady) {
+                try {
+                    await window.firebase.update(window.firebase.ref(window.firebase.database), updates);
+                } catch (error) {
+                    console.error("Erro ao sortear papéis no Firebase:", error);
+                    addLog('❌ Erro ao sortear papéis.');
+                }
+            } else {
+                // Modo offline
+                playerIds.forEach((id, index) => {
+                    players[id].role = index === assassinIndex ? 'assassin' : 'survivor';
+                });
+                updatePlayersList();
+            }
 
             // Atualizar identidade do jogador atual
             if (gameState.playerId in players) {
@@ -1016,10 +1335,9 @@
             }
 
             addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
-            updatePlayersList();
         }
 
-        function nextTurn() {
+        async function nextTurn() {
             if (!gameState.isHost) return;
 
             const game = gameState.currentRoom.game;
@@ -1036,6 +1354,19 @@
             
             game.weather = newWeather.name;
             game.weatherEffect = newWeather.effect;
+
+            if (gameState.firebaseReady) {
+                try {
+                    await window.firebase.update(window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/game`), {
+                        turn: game.turn,
+                        day: game.day,
+                        weather: game.weather,
+                        weatherEffect: game.weatherEffect
+                    });
+                } catch (error) {
+                    console.error("Erro ao avançar turno no Firebase:", error);
+                }
+            }
 
             document.getElementById('weather-text').textContent = `${game.weather} - Dia ${game.day}`;
             document.getElementById('weather-effect').textContent = game.weatherEffect;
@@ -1108,7 +1439,33 @@
             return result;
         }
 
-        function leaveRoom() {
+        async function leaveRoom() {
+            if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
+                try {
+                    // Remover jogador da sala no Firebase
+                    await window.firebase.remove(
+                        window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}`)
+                    );
+                    
+                    // Se for o host e for o último jogador, deletar a sala
+                    if (gameState.isHost) {
+                        const roomRef = window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}`);
+                        const snapshot = await new Promise((resolve) => {
+                            window.firebase.onValue(roomRef, resolve, { onlyOnce: true });
+                        });
+                        
+                        if (snapshot.exists()) {
+                            const roomData = snapshot.val();
+                            if (Object.keys(roomData.players || {}).length === 0) {
+                                await window.firebase.remove(roomRef);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Erro ao sair da sala no Firebase:", error);
+                }
+            }
+
             gameState.roomId = null;
             gameState.playerId = null;
             gameState.isHost = false;
@@ -1128,11 +1485,25 @@
         }
 
         // FUNÇÕES GLOBAIS
-        window.kickPlayer = function(playerId) {
+        window.kickPlayer = async function(playerId) {
             if (!gameState.isHost) return;
-            delete gameState.currentRoom.players[playerId];
-            updatePlayersList();
-            addLog('🚫 Jogador removido da sala');
+            
+            if (gameState.firebaseReady) {
+                try {
+                    await window.firebase.remove(
+                        window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${playerId}`)
+                    );
+                    addLog('🚫 Jogador removido da sala');
+                } catch (error) {
+                    console.error("Erro ao remover jogador:", error);
+                    addLog('❌ Erro ao remover jogador');
+                }
+            } else {
+                // Modo offline
+                delete gameState.currentRoom.players[playerId];
+                updatePlayersList();
+                addLog('🚫 Jogador removido da sala');
+            }
         };
 
         window.viewPlayerInventory = function(playerId, playerName) {
