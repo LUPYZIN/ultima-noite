@@ -1,1017 +1,3208 @@
-// Sistema principal do jogo
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("ULTIMA NOITE - Sistema Carregado");
-    
-    // Estado do jogo
-    const gameState = {
-        roomId: null,
-        playerId: null,
-        isHost: false,
-        currentRole: null,
-        inventory: [],
-        playerSkills: [],
-        firebaseReady: false,
-        currentRoom: null,
-        assassinPowers: {
-            summon_wolves: { cooldown: 10 * 60 * 1000, lastUsed: 0 },
-            shadow_walk: { cooldown: 5 * 60 * 1000, lastUsed: 0 },
-            poison_dart: { cooldown: 7 * 60 * 1000, lastUsed: 0 }
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTIMA NOITE - RPG</title>
+    <style>
+        :root {
+            --bg: #0a0e14;
+            --panel: #1a1f2e;
+            --muted: #8b9bb5;
+            --accent: #ff6b35;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --glass: rgba(255, 255, 255, 0.05);
+            --text: #e4f0fb;
+            --border: rgba(255, 255, 255, 0.1);
         }
-    };
 
-    // Sistema de itens
-    const itemSystem = {
-        comum: [
-            { id: "wood", name: "Madeira", emoji: "🪵", chance: 25, type: "material" },
-            { id: "stick", name: "Galho", emoji: "🌿", chance: 30, type: "material" },
-            { id: "stone", name: "Pedra", emoji: "🪨", chance: 20, type: "material" },
-            { id: "dirty_water", name: "Água Suja", emoji: "💧", chance: 15, type: "consumable" }
-        ],
-        geladeira: [
-            { id: "soda", name: "Refrigerante", emoji: "🥤", chance: 20, type: "consumable" },
-            { id: "expired_yogurt", name: "Iogurte Vencido", emoji: "🥛", chance: 15, type: "food" }
-        ],
-        moveis: [
-            { id: "bottle", name: "Garrafa Vazia", emoji: "🍾", chance: 20, type: "material" },
-            { id: "old_key", name: "Chave Velha", emoji: "🔑", chance: 10, type: "tool" },
-            { id: "bandage", name: "Bandagem Suja", emoji: "🩹", chance: 8, type: "medical" }
-        ],
-        cacto: [
-            { id: "cactus_water", name: "Água de Cacto", emoji: "💦", chance: 40, type: "consumable" },
-            { id: "cactus_spine", name: "Espinho de Cacto", emoji: "🪡", chance: 25, type: "material" }
-        ]
-    };
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-    // Sistema de craft
-    const craftSystem = {
-        recipes: {
-            wooden_knife: {
-                name: "Faca de Madeira",
-                emoji: "🔪",
-                type: "tool",
-                ingredients: [
-                    { id: "wood", amount: 2 },
-                    { id: "stone", amount: 1 }
-                ]
-            },
-            simple_shelter: {
-                name: "Abrigo Simples",
-                emoji: "🛖",
-                type: "shelter",
-                ingredients: [
-                    { id: "wood", amount: 5 },
-                    { id: "stick", amount: 3 }
-                ]
-            },
-            water_filter: {
-                name: "Filtro de Água",
-                emoji: "💧",
-                type: "tool",
-                ingredients: [
-                    { id: "bottle", amount: 1 },
-                    { id: "stick", amount: 1 },
-                    { id: "stone", amount: 1 }
-                ]
-            },
-            stone_axe: {
-                name: "Machado de Pedra",
-                emoji: "🪓",
-                type: "tool",
-                ingredients: [
-                    { id: "wood", amount: 1 },
-                    { id: "stone", amount: 2 },
-                    { id: "stick", amount: 1 }
-                ]
-            },
-            simple_trap: {
-                name: "Armadilha Simples",
-                emoji: "🪤",
-                type: "tool",
-                ingredients: [
-                    { id: "stick", amount: 2 },
-                    { id: "stone", amount: 1 },
-                    { id: "wood", amount: 1 }
-                ]
-            },
-            fixed_radio: {
-                name: "Rádio Reparado",
-                emoji: "📻",
-                type: "special",
-                ingredients: [
-                    { id: "bottle", amount: 1 },
-                    { id: "stone", amount: 2 },
-                    { id: "stick", amount: 1 }
-                ]
-            },
-            medical_kit: {
-                name: "Kit Médico Completo",
-                emoji: "💊",
-                type: "medical",
-                ingredients: [
-                    { id: "bandage", amount: 2 },
-                    { id: "stick", amount: 1 },
-                    { id: "bottle", amount: 1 }
-                ]
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            font-size: 14px;
+        }
+
+        /* Tela de Abertura */
+        #splash-screen {
+            width: 100%;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+
+        .title-animation {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: clamp(4px, 2vw, 8px);
+            background: linear-gradient(45deg, var(--accent), var(--danger));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            animation: fadeInScale 2s ease-in-out;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            animation: fadeIn 2s ease-in-out 1s both;
+        }
+
+        .loading-bar {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--danger));
+            border-radius: 2px;
+            animation: loading 3s linear forwards;
+        }
+
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        /* Menu Principal */
+        .main-menu {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 0 10px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: none;
+        }
+
+        .menu-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+        }
+
+        .logo h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .logo span {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        .menu-items {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 5px 0;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .menu-items::-webkit-scrollbar {
+            display: none;
+        }
+
+        .menu-btn {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .menu-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .menu-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .menu-status {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        .status-online, .status-offline {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-online {
+            background: var(--success);
+        }
+
+        .status-offline {
+            background: var(--danger);
+        }
+
+        /* Conteúdo Principal */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 15px;
+            display: none;
+        }
+
+        .content-tab {
+            display: none;
+        }
+
+        .content-tab.active {
+            display: block;
+        }
+
+        /* Painéis */
+        .panel {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            margin-bottom: 15px;
+        }
+
+        .panel h2, .panel h3 {
+            color: var(--accent);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        /* Sistema de Salas */
+        .room-system {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group h3 {
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        input, button, select {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input, select {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 600;
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .room-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .room-code {
+            background: var(--accent);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .player-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: var(--glass);
+            border-radius: 8px;
+        }
+
+        .player-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--accent), var(--danger));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+
+        .player-role {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .player-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .player-action-btn {
+            padding: 5px 8px;
+            font-size: 10px;
+            border-radius: 5px;
+        }
+
+        /* Jogo Principal */
+        .game-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .weather-panel {
+            grid-column: 1 / -1;
+            text-align: center;
+        }
+
+        .actions-panel {
+            grid-column: 1 / -1;
+        }
+
+        .dice-roller {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .dice-btn {
+            background: var(--glass);
+            border: 2px solid var(--border);
+            height: 50px;
+            font-size: 16px;
+            color: white;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 8px;
+        }
+
+        .action-btn {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            height: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            color: white;
+            font-size: 12px;
+        }
+
+        .action-icon {
+            font-size: 20px;
+        }
+
+        .log-panel {
+            grid-column: 1 / -1;
+        }
+
+        .game-log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .log-entry.assassin {
+            background: rgba(255, 71, 87, 0.1);
+            border-left: 3px solid var(--danger);
+        }
+
+        .log-entry.host {
+            background: rgba(255, 107, 53, 0.1);
+            border-left: 3px solid var(--accent);
+        }
+
+        /* Inventário */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 10px;
+        }
+
+        .item-card {
+            background: var(--glass);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
+
+        .item-rarity {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 8px;
+        }
+
+        .rarity-common { background: var(--muted); }
+        .rarity-uncommon { background: var(--success); }
+        .rarity-rare { background: var(--accent); }
+        .rarity-epic { background: #9b59b6; }
+        .rarity-legendary { background: var(--warning); }
+
+        .item-icon {
+            font-size: 24px;
+        }
+
+        .item-name {
+            font-size: 11px;
+            color: var(--text);
+        }
+
+        .item-quantity {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 5px;
+        }
+
+        .item-btn {
+            padding: 3px 6px;
+            font-size: 9px;
+            border-radius: 4px;
+        }
+
+        .empty-inventory {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 30px;
+            color: var(--muted);
+        }
+
+        .empty-inventory span {
+            font-size: 36px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* Sistema de Craft */
+        .craft-category {
+            margin-bottom: 15px;
+        }
+
+        .craft-recipe {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px;
+            background: var(--glass);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .recipe-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .recipe-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .recipe-ingredients {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .craft-btn {
+            padding: 6px 10px;
+            font-size: 11px;
+        }
+
+        /* Sistema de Habilidades */
+        .skills-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+
+        .skill-item {
+            background: var(--glass);
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .skill-active {
+            background: rgba(46, 213, 115, 0.1);
+            border-color: var(--success);
+        }
+
+        .no-skills {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 30px;
+            color: var(--muted);
+        }
+
+        .no-skills span {
+            font-size: 36px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .class-powers {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .powers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+
+        .power-btn {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .power-btn:hover:not(:disabled) {
+            background: rgba(255, 71, 87, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .power-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .power-icon {
+            font-size: 20px;
+        }
+
+        .power-name {
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .power-cooldown {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .host-controls {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .host-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .modal-content {
+            background: var(--panel);
+            padding: 15px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .modal h3 {
+            margin-bottom: 12px;
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            justify-content: flex-end;
+        }
+
+        .class-option {
+            margin: 8px 0;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .class-option:hover {
+            background: var(--glass);
+        }
+
+        .class-option.selected {
+            background: rgba(255, 107, 53, 0.2);
+            border-color: var(--accent);
+        }
+
+        /* Melhorias para mobile */
+        @media (min-width: 768px) {
+            .main-menu {
+                padding: 0 20px;
             }
-        },
-
-        canCraft(recipeId, inventory) {
-            const recipe = this.recipes[recipeId];
-            if (!recipe) return false;
             
-            for (const ingredient of recipe.ingredients) {
-                const count = inventory.filter(item => item.id === ingredient.id).length;
-                if (count < ingredient.amount) return false;
+            .menu-container {
+                padding: 15px 0;
             }
-            return true;
-        },
-
-        craft(recipeId, inventory) {
-            const recipe = this.recipes[recipeId];
-            const newInventory = [...inventory];
             
-            for (const ingredient of recipe.ingredients) {
-                let toRemove = ingredient.amount;
-                for (let i = newInventory.length - 1; i >= 0 && toRemove > 0; i--) {
-                    if (newInventory[i].id === ingredient.id) {
-                        newInventory.splice(i, 1);
-                        toRemove--;
-                    }
+            .logo h1 {
+                font-size: 1.5rem;
+            }
+            
+            .logo span {
+                font-size: 0.8rem;
+            }
+            
+            .menu-items {
+                gap: 10px;
+            }
+            
+            .menu-btn {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+            
+            .status-item {
+                font-size: 14px;
+                gap: 8px;
+            }
+            
+            .status-online, .status-offline {
+                width: 10px;
+                height: 10px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .panel {
+                padding: 20px;
+                border-radius: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .panel h2, .panel h3 {
+                margin-bottom: 15px;
+                font-size: 1.3rem;
+            }
+            
+            .room-system {
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            
+            .input-group {
+                gap: 10px;
+            }
+            
+            .input-group h3 {
+                margin-bottom: 5px;
+            }
+            
+            input, button, select {
+                padding: 12px;
+                font-size: 14px;
+            }
+            
+            .room-info {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+            
+            .room-code {
+                text-align: left;
+            }
+            
+            .game-container {
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            
+            .dice-roller {
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .dice-btn {
+                height: 60px;
+                font-size: 18px;
+            }
+            
+            .action-buttons {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 10px;
+            }
+            
+            .action-btn {
+                height: 80px;
+                font-size: 14px;
+                gap: 8px;
+            }
+            
+            .action-icon {
+                font-size: 24px;
+            }
+            
+            .game-log {
+                padding: 15px;
+                max-height: 300px;
+            }
+            
+            .inventory-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 15px;
+            }
+            
+            .item-card {
+                padding: 15px;
+                gap: 8px;
+            }
+            
+            .item-rarity {
+                top: 5px;
+                right: 5px;
+                font-size: 10px;
+                padding: 2px 6px;
+            }
+            
+            .item-icon {
+                font-size: 32px;
+            }
+            
+            .item-name {
+                font-size: 12px;
+            }
+            
+            .item-quantity {
+                font-size: 11px;
+            }
+            
+            .item-actions {
+                gap: 5px;
+                margin-top: 5px;
+            }
+            
+            .item-btn {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            
+            .empty-inventory {
+                padding: 40px;
+            }
+            
+            .empty-inventory span {
+                font-size: 48px;
+                margin-bottom: 15px;
+            }
+            
+            .craft-category {
+                margin-bottom: 20px;
+            }
+            
+            .craft-recipe {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px;
+                gap: 0;
+            }
+            
+            .recipe-name {
+                font-size: 16px;
+            }
+            
+            .recipe-ingredients {
+                font-size: 12px;
+            }
+            
+            .craft-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            
+            .skills-list {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 10px;
+            }
+            
+            .skill-item {
+                padding: 12px;
+            }
+            
+            .no-skills {
+                padding: 40px;
+            }
+            
+            .no-skills span {
+                font-size: 48px;
+                margin-bottom: 15px;
+            }
+            
+            .class-powers {
+                margin-top: 20px;
+                padding-top: 20px;
+            }
+            
+            .powers-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 10px;
+            }
+            
+            .power-btn {
+                padding: 12px;
+                gap: 8px;
+            }
+            
+            .power-icon {
+                font-size: 24px;
+            }
+            
+            .power-name {
+                font-size: 14px;
+            }
+            
+            .power-cooldown {
+                font-size: 12px;
+            }
+            
+            .host-controls {
+                margin-top: 20px;
+                padding-top: 20px;
+            }
+            
+            .host-actions {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 10px;
+            }
+            
+            .modal {
+                padding: 20px;
+            }
+            
+            .modal-content {
+                padding: 20px;
+                border-radius: 15px;
+            }
+            
+            .modal h3 {
+                margin-bottom: 15px;
+                font-size: 1.3rem;
+            }
+            
+            .modal-actions {
+                gap: 10px;
+                margin-top: 15px;
+            }
+            
+            .class-option {
+                margin: 10px 0;
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .menu-container {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+            
+            .menu-items {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .room-system {
+                grid-template-columns: 1fr;
+            }
+            
+            .game-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .inventory-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .skills-list, .powers-grid, .host-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .dice-roller {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 360px) {
+            .main-content {
+                padding: 10px;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .inventory-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .dice-roller {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela de Abertura -->
+    <div id="splash-screen">
+        <div class="title-animation">ULTIMA NOITE</div>
+        <div class="subtitle">SOBREVIVÊNCIA NO DESERTO</div>
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
+        </div>
+    </div>
+
+    <!-- Menu Principal -->
+    <nav class="main-menu">
+        <div class="menu-container">
+            <div class="logo">
+                <h1>🌵 ULTIMA NOITE</h1>
+                <span>SOBREVIVÊNCIA NO DESERTO</span>
+            </div>
+            <div class="menu-items">
+                <button class="menu-btn active" data-tab="rooms">🔄 Salas</button>
+                <button class="menu-btn" data-tab="game">🎮 Jogo</button>
+                <button class="menu-btn" data-tab="inventory">🎒 Inventário</button>
+                <button class="menu-btn" data-tab="craft">🛠️ Craft</button>
+                <button class="menu-btn" data-tab="skills">💪 Habilidades</button>
+            </div>
+            <div class="menu-status">
+                <div class="status-item">
+                    <span id="connection-status" class="status-offline"></span>
+                    <span id="connection-text">Offline</span>
+                </div>
+                <div class="status-item">
+                    <span>👥</span>
+                    <span id="player-count">0/8</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+        <!-- Aba: Sistema de Salas -->
+        <div id="rooms-tab" class="content-tab active">
+            <div class="panel">
+                <h2>🔄 Sistema de Salas</h2>
+                <div class="room-system">
+                    <div class="input-group">
+                        <h3>Criar Nova Sala</h3>
+                        <input type="text" id="new-room-name" placeholder="Nome da sala">
+                        <input type="text" id="host-name" placeholder="Seu nome">
+                        <button id="create-room-btn" class="btn-success">🎮 Criar Sala</button>
+                    </div>
+                    
+                    <div class="input-group">
+                        <h3>Entrar em Sala</h3>
+                        <input type="text" id="room-id" placeholder="ID da sala">
+                        <input type="text" id="player-name" placeholder="Seu nome">
+                        <button id="join-room-btn" class="btn-primary">🚪 Entrar na Sala</button>
+                    </div>
+                </div>
+
+                <div id="room-management" style="display: none;">
+                    <h3>👥 Jogadores na Sala</h3>
+                    <div class="room-info">
+                        <div id="room-code-display" class="room-code">Código: ...</div>
+                        <button id="leave-room-btn" class="btn-danger">Sair da Sala</button>
+                    </div>
+                    <div class="players-list" id="players-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba: Jogo Principal -->
+        <div id="game-tab" class="content-tab">
+            <div class="game-container">
+                <div class="panel weather-panel">
+                    <div id="weather-event">
+                        <div id="weather-text">🌞 Dia 1 - Dia Ensolarado</div>
+                        <div id="weather-effect">Calor intenso - Consumo de água dobrado</div>
+                    </div>
+                </div>
+
+                <div class="panel actions-panel">
+                    <h3>Ações do Jogo</h3>
+                    <div class="dice-roller">
+                        <button class="dice-btn" data-dice="4">D4</button>
+                        <button class="dice-btn" data-dice="6">D6</button>
+                        <button class="dice-btn" data-dice="8">D8</button>
+                        <button class="dice-btn" data-dice="10">D10</button>
+                        <button class="dice-btn" data-dice="20">D20</button>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="action-btn" id="explore-btn">
+                            <span class="action-icon">🔍</span>
+                            <span>Vasculhar</span>
+                        </button>
+                        <button class="action-btn" id="search-food">
+                            <span class="action-icon">🍖</span>
+                            <span>Procurar Comida</span>
+                        </button>
+                        <button class="action-btn" id="chop-tree">
+                            <span class="action-icon">🪓</span>
+                            <span>Cortar Árvore</span>
+                        </button>
+                        <button class="action-btn" id="collect-btn">
+                            <span class="action-icon">🌿</span>
+                            <span>Coletar Arbustos</span>
+                        </button>
+                        <button class="action-btn" id="search-fridge">
+                            <span class="action-icon">🧊</span>
+                            <span>Procurar Geladeira</span>
+                        </button>
+                        <button class="action-btn" id="search-furniture">
+                            <span class="action-icon">🪑</span>
+                            <span>Vasculhar Móveis</span>
+                        </button>
+                        <button class="action-btn" id="cactus-btn">
+                            <span class="action-icon">🌵</span>
+                            <span>Coletar Cacto</span>
+                        </button>
+                        <button class="action-btn" id="water-btn">
+                            <span class="action-icon">💧</span>
+                            <span>Procurar Água</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel log-panel">
+                    <h3>📝 Log do Jogo</h3>
+                    <div class="game-log" id="game-log">
+                        <div class="log-entry">Bem-vindo ao ULTIMA NOITE! Entre em uma sala para começar.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba: Inventário -->
+        <div id="inventory-tab" class="content-tab">
+            <div class="panel">
+                <h2>🎒 Seu Inventário</h2>
+                <div class="inventory-grid" id="inventory-grid">
+                    <div class="empty-inventory">
+                        <span>🎒</span>
+                        <p>Seu inventário está vazio</p>
+                        <p>Use as ações do jogo para coletar itens!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba: Sistema de Craft -->
+        <div id="craft-tab" class="content-tab">
+            <div class="panel">
+                <h2>🛠️ Sistema de Craft</h2>
+                
+                <div class="craft-category" id="craft-basic">
+                    <h3>🔨 Básico (Todos)</h3>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Faca de Madeira</span>
+                            <span class="recipe-ingredients">2🪵 + 1🪨</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="wooden_knife">Craft</button>
+                    </div>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Abrigo Simples</span>
+                            <span class="recipe-ingredients">5🪵 + 3🌿</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="simple_shelter">Craft</button>
+                    </div>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Filtro de Água</span>
+                            <span class="recipe-ingredients">1🍾 + 1🌿 + 1🪨</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="water_filter">Craft</button>
+                    </div>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Tocha</span>
+                            <span class="recipe-ingredients">1🪵 + 2🌿</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="torch">Craft</button>
+                    </div>
+                </div>
+
+                <div class="craft-category" id="craft-survival" style="display: none;">
+                    <h3>🏕️ Sobrevivência</h3>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Machado de Pedra</span>
+                            <span class="recipe-ingredients">1🪵 + 2🪨 + 1🪢</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="stone_axe">Craft</button>
+                    </div>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Armadilha Simples</span>
+                            <span class="recipe-ingredients">2🌿 + 1🪢 + 1🪵</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="simple_trap">Craft</button>
+                    </div>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Cantil</span>
+                            <span class="recipe-ingredients">1🍾 + 1🪨</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="canteen">Craft</button>
+                    </div>
+                </div>
+
+                <div class="craft-category" id="craft-medicine" style="display: none;">
+                    <h3>⚕️ Medicina</h3>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Kit Médico Básico</span>
+                            <span class="recipe-ingredients">2🌿 + 1🩹</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="basic_medkit">Craft</button>
+                    </div>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Antídoto Simples</span>
+                            <span class="recipe-ingredients">3🌿 + 1💧</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="antidote">Craft</button>
+                    </div>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Analgésico Natural</span>
+                            <span class="recipe-ingredients">2🌿 + 1🌵</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="painkiller">Craft</button>
+                    </div>
+                </div>
+
+                <div class="craft-category" id="craft-advanced" style="display: none;">
+                    <h3>⚙️ Avançado</h3>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Rádio Reparado</span>
+                            <span class="recipe-ingredients">1📻 + 2🔌 + 1🔩</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="fixed_radio">Craft</button>
+                    </div>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Kit Médico Avançado</span>
+                            <span class="recipe-ingredients">2🩹 + 1💊 + 1💧</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="advanced_medkit">Craft</button>
+                    </div>
+                    <div class="craft-recipe">
+                        <div class="recipe-info">
+                            <span class="recipe-name">Mapa da Região</span>
+                            <span class="recipe-ingredients">3🌿 + 1🖊️</span>
+                        </div>
+                        <button class="btn-success craft-btn" data-recipe="region_map">Craft</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba: Habilidades -->
+        <div id="skills-tab" class="content-tab">
+            <div class="panel">
+                <h2>💪 Sistema de Habilidades</h2>
+                
+                <div class="player-skills">
+                    <h3>🎯 Suas Habilidades</h3>
+                    <div id="skills-list" class="skills-list">
+                        <div class="no-skills">
+                            <span>🎓</span>
+                            <p>Você ainda não possui habilidades</p>
+                            <p>O host pode atribuir habilidades durante o jogo</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="class-powers" class="class-powers" style="display: none;">
+                    <h3 id="class-powers-title">Poderes da Classe</h3>
+                    <div class="powers-grid" id="powers-grid"></div>
+                </div>
+
+                <div id="host-controls" class="host-controls" style="display: none;">
+                    <h3>👑 Controles do Host</h3>
+                    <div class="host-actions">
+                        <button id="assign-roles-btn" class="btn-success">🎭 Atribuir Identidades</button>
+                        <button id="next-turn-btn" class="btn-success">⏭️ Avançar Turno</button>
+                        <button id="random-message-btn" class="btn-warning">💬 Mensagem Aleatória</button>
+                        <button id="trigger-event-btn" class="btn-warning">🎲 Evento Aleatório</button>
+                        <button id="give-resources-btn" class="btn-primary">📦 Dar Recursos</button>
+                        <button id="manage-players-btn" class="btn-primary">👥 Gerenciar Jogadores</button>
+                        <button id="custom-item-btn" class="btn-warning">✨ Criar Item Personalizado</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal para Gerenciar Jogadores -->
+    <div id="player-management-modal" class="modal">
+        <div class="modal-content">
+            <h3>👥 Gerenciar Jogadores</h3>
+            <div id="player-management-list"></div>
+            <div class="modal-actions">
+                <button id="close-player-modal" class="btn-danger">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Atribuir Classe -->
+    <div id="assign-class-modal" class="modal">
+        <div class="modal-content">
+            <h3>🎭 Atribuir Classe para <span id="target-player-name"></span></h3>
+            <div id="class-selection"></div>
+            <div class="modal-actions">
+                <button id="confirm-class-btn" class="btn-success">Confirmar</button>
+                <button id="cancel-class-btn" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Criar Item Personalizado -->
+    <div id="custom-item-modal" class="modal">
+        <div class="modal-content">
+            <h3>✨ Criar Item Personalizado</h3>
+            <div class="input-group">
+                <input type="text" id="custom-item-name" placeholder="Nome do item">
+                <input type="text" id="custom-item-icon" placeholder="Emoji do item (ex: 🗡️)">
+                <input type="number" id="custom-item-quantity" placeholder="Quantidade" value="1" min="1">
+                <select id="custom-item-rarity">
+                    <option value="common">Comum</option>
+                    <option value="uncommon">Incomum</option>
+                    <option value="rare">Raro</option>
+                    <option value="epic">Épico</option>
+                    <option value="legendary">Lendário</option>
+                </select>
+                <select id="custom-item-target">
+                    <option value="all">Todos os Jogadores</option>
+                    <option value="host">Apenas Host</option>
+                    <option value="specific">Jogador Específico</option>
+                </select>
+                <select id="custom-item-player" style="display: none;">
+                    <!-- Opções de jogadores serão preenchidas dinamicamente -->
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="create-custom-item-btn" class="btn-success">Criar Item</button>
+                <button id="cancel-custom-item-btn" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        // ===== CONFIGURAÇÃO DO FIREBASE =====
+        console.log("🔥 Iniciando Firebase...");
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAgzXg_2xhAOfPAA7DhE4lq5MLFEmJVGJs",
+            authDomain: "ultima-noite-f2867.firebaseapp.com",
+            databaseURL: "https://ultima-noite-f2867-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ultima-noite-f2867",
+            storageBucket: "ultima-noite-f2867.firebasestorage.app",
+            messagingSenderId: "553820660993",
+            appId: "1:553820660993:web:cb1019cc2361a54e4c6700",
+            measurementId: "G-J8XZBFZH32"
+        };
+
+        // Inicializar Firebase
+        let firebaseApp, firebaseDB;
+        try {
+            firebaseApp = firebase.initializeApp(firebaseConfig);
+            firebaseDB = firebase.database();
+            console.log("✅ Firebase inicializado com sucesso!");
+            updateConnectionStatus(true);
+        } catch (error) {
+            console.error("❌ Erro ao inicializar Firebase:", error);
+            updateConnectionStatus(false);
+        }
+
+        // Monitorar status de conexão
+        if (firebaseDB) {
+            const connectedRef = firebaseDB.ref('.info/connected');
+            connectedRef.on('value', (snap) => {
+                updateConnectionStatus(snap.val() === true);
+            });
+        }
+
+        function updateConnectionStatus(isConnected) {
+            const statusElement = document.getElementById('connection-status');
+            const textElement = document.getElementById('connection-text');
+            
+            if (statusElement && textElement) {
+                if (isConnected) {
+                    statusElement.className = 'status-online';
+                    textElement.textContent = 'Online';
+                    console.log("🌐 Status: Online");
+                } else {
+                    statusElement.className = 'status-offline';
+                    textElement.textContent = 'Offline';
+                    console.log("🌐 Status: Offline");
                 }
             }
+        }
+
+        // ===== VARIÁVEIS GLOBAIS DO JOGO =====
+        window.gameState = {
+            currentRoom: null,
+            playerName: null,
+            isHost: false,
+            playerId: null,
+            skills: [],
+            inventory: {},
+            role: null,
+            class: null
+        };
+
+        // ===== SISTEMA DE MENSAGENS DE LOG =====
+        const LOG_MESSAGES = {
+            noItemFound: [
+                "🔍 {player} vasculhou tudo e só encontrou poeira!",
+                "😩 Que azar! {player} não encontrou nada útil.",
+                "🤷‍♂️ {player} revirou tudo mas não achou nada interessante.",
+                "💨 {player} só encontrou ar quente do deserto!",
+                "🦗 {player} achou apenas um grilo solitário.",
+                "🕸️ {player} encontrou uma teia de aranha vazia.",
+                "🌬️ {player} só sentiu o vento quente do deserto.",
+                "🐜 {player} quase pisou em uma formiga!",
+                "🏜️ {player} encontrou mais areia... só areia.",
+                "💤 {player} ficou com sono de tanto procurar."
+            ],
+            commonItem: [
+                "🔍 {player} encontrou {item}!",
+                "👀 {player} achou {item} escondido.",
+                "🎯 {player} conseguiu {item} com sucesso!",
+                "✅ {player} coletou {item}.",
+                "👍 {player} descobriu {item}."
+            ],
+            uncommonItem: [
+                "✨ Uau! {player} encontrou {item} incomum!",
+                "🌟 Que sorte! {player} achou {item} raro!",
+                "💎 Incrível! {player} descobriu {item} valioso!",
+                "🔮 {player} teve sorte e encontrou {item}!",
+                "🎁 {player} achou um tesouro: {item}!"
+            ],
+            rareItem: [
+                "🔥 WOW! {player} encontrou {item} SUPER RARO!",
+                "💎💎 QUE INCRÍVEL! {player} achou {item} LENDÁRIO!",
+                "🌟✨ ESPETACULAR! {player} descobriu {item} ÉPICO!",
+                "🎉🎊 FESTA! {player} encontrou {item} MÍTICO!",
+                "🏆🏅 LEGENDÁRIO! {player} achou {item} INCRÍVEL!"
+            ],
+            useItem: [
+                "🔧 {player} usou {item}.",
+                "🛠️ {player} utilizou {item} com sucesso.",
+                "⚗️ {player} aplicou {item}.",
+                "💡 {player} ativou {item}."
+            ],
+            discardItem: [
+                "🗑️ {player} descartou {item}.",
+                "🚮 {player} jogou fora {item}.",
+                "💨 {player} se livrou de {item}.",
+                "👋 {player} deixou {item} para trás."
+            ],
+            craftItem: [
+                "🛠️ {player} craftou {item}!",
+                "🔨 {player} construiu {item} com sucesso!",
+                "⚒️ {player} fabricou {item}.",
+                "🧰 {player} montou {item}."
+            ],
+            customItem: [
+                "✨ {player} recebeu {item} personalizado!",
+                "🎁 {player} ganhou {item} especial do host!",
+                "💫 {player} foi presenteado com {item}!",
+                "🌟 {player} recebeu {item} exclusivo!"
+            ]
+        };
+
+        // ===== SISTEMA DE CLASSES E HABILIDADES =====
+        const GAME_CLASSES = {
+            // Classes de Assassinos
+            'assassin_shadow': {
+                name: 'Assassino das Sombras',
+                type: 'assassin',
+                description: 'Mestre da furtividade e ataques sorrateiros',
+                startingItems: {
+                    "Faca de Madeira": 1,
+                    "Tocha": 1
+                },
+                powers: [
+                    { id: 'shadow_strike', name: 'Golpe das Sombras', icon: '🗡️', description: 'Ataque furtivo que causa dano extra', cooldown: '3 turnos' },
+                    { id: 'vanish', name: 'Desaparecer', icon: '👻', description: 'Torna-se invisível por 1 turno', cooldown: '4 turnos' },
+                    { id: 'poison_blade', name: 'Lâmina Envenenada', icon: '🧪', description: 'Envenena o alvo, causando dano contínuo', cooldown: '5 turnos' },
+                    { id: 'night_vision', name: 'Visão Noturna', icon: '🌙', description: 'Pode ver na escuridão total', cooldown: 'Ativo' }
+                ]
+            },
+            'assassin_illusionist': {
+                name: 'Ilusionista',
+                type: 'assassin',
+                description: 'Cria ilusões para confundir e enganar',
+                startingItems: {
+                    "Tocha": 2,
+                    "Corda": 1
+                },
+                powers: [
+                    { id: 'mirage', name: 'Miragem', icon: '🌅', description: 'Cria uma ilusão que distrai os inimigos', cooldown: '2 turnos' },
+                    { id: 'decoy', name: 'Isca', icon: '🎭', description: 'Cria um clone para atrair ataques', cooldown: '3 turnos' },
+                    { id: 'hallucination', name: 'Alucinação', icon: '🌀', description: 'Causa confusão no alvo', cooldown: '4 turnos' },
+                    { id: 'phantom_step', name: 'Passo Fantasma', icon: '👣', description: 'Move-se sem deixar rastros', cooldown: 'Ativo' }
+                ]
+            },
+            'assassin_venomancer': {
+                name: 'Venomancer',
+                type: 'assassin',
+                description: 'Especialista em venenos e armadilhas',
+                startingItems: {
+                    "Faca de Madeira": 1,
+                    "Armadilha Simples": 1
+                },
+                powers: [
+                    { id: 'toxic_trap', name: 'Armadilha Tóxica', icon: '🕸️', description: 'Coloca uma armadilha envenenada', cooldown: '3 turnos' },
+                    { id: 'venom_dart', name: 'Dardo Venenoso', icon: '🎯', description: 'Ataca à distância com dardo envenenado', cooldown: '2 turnos' },
+                    { id: 'poison_cloud', name: 'Nuvem Tóxica', icon: '☁️', description: 'Cria uma nuvem de veneno na área', cooldown: '5 turnos' },
+                    { id: 'antidote', name: 'Antídoto', icon: '💊', description: 'Imune a venenos', cooldown: 'Ativo' }
+                ]
+            },
             
-            newInventory.push({
-                id: recipeId,
-                name: recipe.name,
-                emoji: recipe.emoji,
-                type: recipe.type
-            });
+            // Classes de Sobreviventes
+            'survivor_leader': {
+                name: 'Líder',
+                type: 'survivor',
+                description: 'Inspira e coordena o grupo',
+                startingItems: {
+                    "Cantil": 1,
+                    "Mapa da Região": 1
+                },
+                powers: [
+                    { id: 'motivational_speech', name: 'Discurso Motivacional', icon: '🗣️', description: 'Aumenta a eficiência do grupo', cooldown: '3 turnos' },
+                    { id: 'strategic_plan', name: 'Plano Estratégico', icon: '🧩', description: 'Revela informações importantes', cooldown: '4 turnos' },
+                    { id: 'unite', name: 'Unir', icon: '🤝', description: 'Protege o grupo de um perigo iminente', cooldown: '5 turnos' },
+                    { id: 'emergency_ration', name: 'Ração de Emergência', icon: '🍞', description: 'Encontra comida extra', cooldown: 'Ativo' }
+                ]
+            },
+            'survivor_hunter': {
+                name: 'Caçador',
+                type: 'survivor',
+                description: 'Especialista em coleta e rastreamento',
+                startingItems: {
+                    "Machado de Pedra": 1,
+                    "Armadilha Simples": 1
+                },
+                powers: [
+                    { id: 'track', name: 'Rastrear', icon: '👣', description: 'Encontra recursos com mais facilidade', cooldown: '2 turnos' },
+                    { id: 'hunt', name: 'Caçar', icon: '🏹', description: 'Obtém comida adicional', cooldown: '3 turnos' },
+                    { id: 'wilderness_sense', name: 'Sentido Selvagem', icon: '🌲', description: 'Detecta perigos próximos', cooldown: '4 turnos' },
+                    { id: 'resourceful', name: 'Recurso Extra', icon: '🪵', description: 'Encontra recursos extras ao vasculhar', cooldown: 'Ativo' }
+                ]
+            },
+            'survivor_medic': {
+                name: 'Médico',
+                type: 'survivor',
+                description: 'Especialista em cura e sobrevivência',
+                startingItems: {
+                    "Kit Médico Básico": 1,
+                    "Antídoto Simples": 1
+                },
+                powers: [
+                    { id: 'heal', name: 'Curar', icon: '🩹', description: 'Recupera a saúde de um aliado', cooldown: '3 turnos' },
+                    { id: 'first_aid', name: 'Primeiros Socorros', icon: '💊', description: 'Cura ferimentos leves instantaneamente', cooldown: '2 turnos' },
+                    { id: 'antidote_brew', name: 'Preparar Antídoto', icon: '🧪', description: 'Cura venenos e doenças', cooldown: '4 turnos' },
+                    { id: 'field_medicine', name: 'Medicina de Campo', icon: '🌿', description: 'Encontra plantas medicinais com mais facilidade', cooldown: 'Ativo' }
+                ]
+            },
+            'survivor_engineer': {
+                name: 'Engenheiro',
+                type: 'survivor',
+                description: 'Mestre em construção e craft',
+                startingItems: {
+                    "Faca de Madeira": 1,
+                    "Filtro de Água": 1
+                },
+                powers: [
+                    { id: 'improved_craft', name: 'Craft Aprimorado', icon: '🛠️', description: 'Crafta itens com menos recursos', cooldown: 'Ativo' },
+                    { id: 'reinforce', name: 'Reforçar', icon: '🛡️', description: 'Fortalece estruturas do acampamento', cooldown: '3 turnos' },
+                    { id: 'salvage', name: 'Reciclar', icon: '♻️', description: 'Obtém recursos de itens quebrados', cooldown: '2 turnos' },
+                    { id: 'emergency_repair', name: 'Reparo de Emergência', icon: '🔧', description: 'Conserta itens rapidamente', cooldown: '4 turnos' }
+                ]
+            },
+            'survivor_seer': {
+                name: 'Vidente',
+                type: 'survivor',
+                description: 'Pode prever eventos futuros',
+                startingItems: {
+                    "Tocha": 1,
+                    "Mapa da Região": 1
+                },
+                powers: [
+                    { id: 'weather_prediction', name: 'Previsão do Tempo', icon: '🌤️', description: 'Revela o clima dos próximos turnos', cooldown: '3 turnos' },
+                    { id: 'danger_sense', name: 'Sentir Perigo', icon: '⚠️', description: 'Avisa sobre perigos iminentes', cooldown: '4 turnos' },
+                    { id: 'vision', name: 'Visão', icon: '🔮', description: 'Revela informações ocultas', cooldown: '5 turnos' },
+                    { id: 'intuition', name: 'Intuição', icon: '💫', description: 'Encontra recursos ocultos', cooldown: 'Ativo' }
+                ]
+            },
+            'survivor_guardian': {
+                name: 'Guardião',
+                type: 'survivor',
+                description: 'Especialista em defesa e proteção',
+                startingItems: {
+                    "Machado de Pedra": 1,
+                    "Abrigo Simples": 1
+                },
+                powers: [
+                    { id: 'protect', name: 'Proteger', icon: '🛡️', description: 'Defende um aliado de um ataque', cooldown: '3 turnos' },
+                    { id: 'fortify', name: 'Fortificar', icon: '🏰', description: 'Aumenta a defesa do acampamento', cooldown: '4 turnos' },
+                    { id: 'intimidate', name: 'Intimidar', icon: '👹', description: 'Afugenta criaturas hostis', cooldown: '3 turnos' },
+                    { id: 'vigilance', name: 'Vigilância', icon: '👁️', description: 'Detecta ameaças à noite', cooldown: 'Ativo' }
+                ]
+            },
+            'survivor_explorer': {
+                name: 'Explorador',
+                type: 'survivor',
+                description: 'Mestre em mobilidade e descoberta',
+                startingItems: {
+                    "Cantil": 1,
+                    "Tocha": 2
+                },
+                powers: [
+                    { id: 'scout', name: 'Explorar', icon: '🧭', description: 'Descobre novas áreas mais rapidamente', cooldown: '2 turnos' },
+                    { id: 'quick_movement', name: 'Movimento Rápido', icon: '💨', description: 'Move-se mais rápido que os outros', cooldown: 'Ativo' },
+                    { id: 'treasure_hunt', name: 'Caça ao Tesouro', icon: '🗺️', description: 'Encontra itens raros', cooldown: '4 turnos' },
+                    { id: 'escape', name: 'Escapar', icon: '🏃', description: 'Foge de situações perigosas', cooldown: '3 turnos' }
+                ]
+            }
+        };
+
+        // ===== INICIALIZAÇÃO DO JOGO =====
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("🎮 DOM carregado - Iniciando jogo...");
             
-            return newInventory;
-        }
-    };
+            // Transição da tela de abertura para o menu
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.display = 'none';
+                document.querySelector('.main-menu').style.display = 'block';
+                document.querySelector('.main-content').style.display = 'block';
+                initializeGame();
+            }, 3000);
+        });
 
-    // Sistema de habilidades
-    const skillSystem = {
-        survival: {
-            name: "Sobrevivência",
-            description: "Conhecimento em sobrevivência no deserto",
-            benefits: "+50% água de cacto, -50% dano cactos, +20% comida"
-        },
-        crafting: {
-            name: "Crafting",
-            description: "Habilidade em criar itens complexos",
-            benefits: "Desbloqueia crafts avançados, -1 ingrediente"
-        },
-        scavenging: {
-            name: "Procura",
-            description: "Olho afiado para encontrar itens",
-            benefits: "+25% chance encontrar itens, +10% itens raros"
-        },
-        healing: {
-            name: "Cura",
-            description: "Conhecimento em primeiros socorros",
-            benefits: "Itens médicos 2x eficientes, +1 vida"
+        function initializeGame() {
+            initializeMenu();
+            initializeRoomSystem();
+            initializeGameActions();
+            initializeCraftSystem();
+            initializeSkillsSystem();
+            initializeModals();
+            
+            // Testar conexão Firebase
+            setTimeout(testFirebaseConnection, 1000);
         }
-    };
 
-    // Inicialização
-    function initializeGame() {
-        console.log("Inicializando jogo...");
-        
-        // Verificar Firebase
-        const checkFirebase = setInterval(() => {
-            if (window.firebase) {
-                clearInterval(checkFirebase);
-                gameState.firebaseReady = true;
-                updateConnectionStatus(true);
-                console.log("Firebase carregado - Inicializando Event Listeners");
-                initializeEventListeners();
+        function initializeMenu() {
+            const menuButtons = document.querySelectorAll('.menu-btn');
+            const contentTabs = document.querySelectorAll('.content-tab');
+
+            menuButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetTab = button.getAttribute('data-tab');
+                    
+                    menuButtons.forEach(btn => btn.classList.remove('active'));
+                    contentTabs.forEach(tab => tab.classList.remove('active'));
+                    
+                    button.classList.add('active');
+                    document.getElementById(`${targetTab}-tab`).classList.add('active');
+                });
+            });
+        }
+
+        function initializeRoomSystem() {
+            document.getElementById('create-room-btn').addEventListener('click', createRoom);
+            document.getElementById('join-room-btn').addEventListener('click', joinRoom);
+            document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
+        }
+
+        function initializeGameActions() {
+            // Rolagem de dados
+            document.querySelectorAll('.dice-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const diceType = parseInt(this.getAttribute('data-dice'));
+                    rollDice(diceType);
+                });
+            });
+
+            // Ações do jogo
+            document.querySelectorAll('.action-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    performGameAction(this.id);
+                });
+            });
+        }
+
+        function initializeCraftSystem() {
+            document.querySelectorAll('.craft-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    craftItem(this.getAttribute('data-recipe'));
+                });
+            });
+        }
+
+        function initializeSkillsSystem() {
+            document.getElementById('assign-roles-btn').addEventListener('click', showPlayerManagement);
+            document.getElementById('next-turn-btn').addEventListener('click', nextTurn);
+            document.getElementById('random-message-btn').addEventListener('click', sendRandomMessage);
+            document.getElementById('trigger-event-btn').addEventListener('click', triggerRandomEvent);
+            document.getElementById('give-resources-btn').addEventListener('click', giveResources);
+            document.getElementById('manage-players-btn').addEventListener('click', showPlayerManagement);
+            document.getElementById('custom-item-btn').addEventListener('click', showCustomItemModal);
+        }
+
+        function initializeModals() {
+            // Modal de gerenciamento de jogadores
+            document.getElementById('close-player-modal').addEventListener('click', () => {
+                document.getElementById('player-management-modal').style.display = 'none';
+            });
+
+            // Modal de atribuição de classe
+            document.getElementById('cancel-class-btn').addEventListener('click', () => {
+                document.getElementById('assign-class-modal').style.display = 'none';
+            });
+
+            document.getElementById('confirm-class-btn').addEventListener('click', assignClassToPlayer);
+
+            // Modal de item personalizado
+            document.getElementById('cancel-custom-item-btn').addEventListener('click', () => {
+                document.getElementById('custom-item-modal').style.display = 'none';
+            });
+
+            document.getElementById('create-custom-item-btn').addEventListener('click', createCustomItem);
+            
+            // Mostrar/ocultar seletor de jogador específico
+            document.getElementById('custom-item-target').addEventListener('change', function() {
+                const playerSelect = document.getElementById('custom-item-player');
+                playerSelect.style.display = this.value === 'specific' ? 'block' : 'none';
+                
+                if (this.value === 'specific' && window.gameState.isHost && window.gameState.currentRoom) {
+                    updatePlayerSelectList();
+                }
+            });
+        }
+
+        // ===== FUNÇÕES DO FIREBASE =====
+        async function testFirebaseConnection() {
+            if (!firebaseDB) {
+                console.log("❌ Firebase não está disponível");
+                return;
             }
-        }, 100);
-        
-        // Timeout para Firebase
-        setTimeout(() => {
-            if (!gameState.firebaseReady) {
-                console.error("Firebase não carregou a tempo");
-                updateConnectionStatus(false);
-                initializeEventListeners();
+            
+            try {
+                await firebaseDB.ref('.info/connected').once('value');
+                console.log("✅ Conexão Firebase funcionando!");
+                addLogEntry('✅ Conectado ao servidor!');
+            } catch (error) {
+                console.error('❌ Erro na conexão Firebase:', error);
+                addLogEntry('❌ Erro de conexão com o servidor');
             }
-        }, 5000);
-    }
-
-    function updateConnectionStatus(connected) {
-        const statusDot = document.getElementById('connection-status');
-        const statusText = document.getElementById('connection-text');
-        
-        if (connected) {
-            statusDot.className = 'status-online';
-            statusText.textContent = 'Conectado';
-        } else {
-            statusDot.className = 'status-offline';
-            statusText.textContent = 'Offline';
-        }
-    }
-
-    // Sistema de Menu
-    function initializeMenu() {
-        const menuButtons = document.querySelectorAll('.menu-btn');
-        
-        menuButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                // Remover classe active de todos os botões
-                menuButtons.forEach(btn => btn.classList.remove('active'));
-                
-                // Adicionar classe active ao botão clicado
-                this.classList.add('active');
-                
-                // Esconder todas as abas
-                const tabs = document.querySelectorAll('.content-tab');
-                tabs.forEach(tab => tab.classList.remove('active'));
-                
-                // Mostrar aba correspondente
-                const tabId = this.getAttribute('data-tab') + '-tab';
-                document.getElementById(tabId).classList.add('active');
-            });
-        });
-    }
-
-    // Event Listeners
-    function initializeEventListeners() {
-        console.log("Inicializando event listeners...");
-        
-        // Inicializar menu
-        initializeMenu();
-        
-        // Sistema de salas
-        document.getElementById('create-room-btn').addEventListener('click', createRoom);
-        document.getElementById('join-room-btn').addEventListener('click', joinRoom);
-        document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
-
-        // Ações do jogo
-        document.getElementById('explore-btn').addEventListener('click', explore);
-        document.getElementById('search-food').addEventListener('click', searchFood);
-        document.getElementById('chop-tree').addEventListener('click', chopTree);
-        document.getElementById('collect-btn').addEventListener('click', collect);
-        document.getElementById('search-fridge').addEventListener('click', searchFridge);
-        document.getElementById('search-furniture').addEventListener('click', searchFurniture);
-        document.getElementById('cactus-btn').addEventListener('click', collectCactus);
-        document.getElementById('water-btn').addEventListener('click', searchWater);
-
-        // Controles do host
-        document.getElementById('assign-roles-btn').addEventListener('click', assignRoles);
-        document.getElementById('next-turn-btn').addEventListener('click', nextTurn);
-        document.getElementById('random-message-btn').addEventListener('click', sendRandomMessage);
-        document.getElementById('trigger-event-btn').addEventListener('click', triggerRandomEvent);
-
-        // Dados
-        document.querySelectorAll('.dice-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const dice = this.getAttribute('data-dice');
-                if (dice) rollDice(parseInt(dice));
-            });
-        });
-
-        // Craft
-        document.querySelectorAll('.craft-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const recipe = this.getAttribute('data-recipe');
-                if (recipe) craftItem(recipe);
-            });
-        });
-
-        // Poderes do assassino
-        document.getElementById('summon-wolves').addEventListener('click', function() {
-            useAssassinPower('summon_wolves');
-        });
-        document.getElementById('shadow-walk').addEventListener('click', function() {
-            useAssassinPower('shadow_walk');
-        });
-        document.getElementById('poison-dart').addEventListener('click', function() {
-            useAssassinPower('poison_dart');
-        });
-
-        console.log("Event listeners inicializados com sucesso");
-    }
-
-    // Sistema de Salas
-    async function createRoom() {
-        console.log("Criando sala...");
-        
-        if (!gameState.firebaseReady) {
-            addLog('❌ Firebase não está carregado!');
-            return;
         }
 
-        const roomName = document.getElementById('new-room-name').value.trim();
-        const hostName = document.getElementById('host-name').value.trim();
-
-        if (!roomName || !hostName) {
-            addLog('❌ Preencha todos os campos!');
-            return;
-        }
-
-        try {
+        // ===== SISTEMA DE SALAS =====
+        async function createRoom() {
+            const roomName = document.getElementById('new-room-name').value;
+            const hostName = document.getElementById('host-name').value;
+            
+            if (!roomName || !hostName) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+            
             const roomId = generateRoomId();
-            gameState.roomId = roomId;
-            gameState.playerId = 'host_' + Date.now();
-            gameState.isHost = true;
+            const playerId = 'player_' + Date.now();
             
             const roomData = {
                 name: roomName,
                 host: hostName,
-                hostId: gameState.playerId,
                 players: {
-                    [gameState.playerId]: {
+                    [playerId]: {
                         name: hostName,
                         role: 'host',
+                        class: 'host',
                         isHost: true,
-                        isPlaying: true,
-                        inventory: [],
-                        skills: []
+                        inventory: {},
+                        skills: [],
+                        joinedAt: Date.now()
                     }
                 },
                 game: {
                     turn: 1,
                     day: 1,
-                    weather: "🌞 Dia Ensolarado",
-                    weatherEffect: "Calor intenso - Consumo de água dobrado"
+                    weather: "🌞 Dia 1 - Dia Ensolarado",
+                    weatherEffect: "Calor intenso - Consumo de água dobrado",
+                    status: 'waiting',
+                    phase: 'day'
                 },
                 createdAt: Date.now()
             };
-
-            await window.firebase.set(
-                window.firebase.ref(window.firebase.database, `rooms/${roomId}`), 
-                roomData
-            );
-
-            listenToRoomChanges(roomId);
-            updateUIForRoom(roomId);
-            addLog(`✅ Sala "${roomName}" criada! Código: ${roomId}`);
             
-        } catch (error) {
-            console.error("Erro:", error);
-            addLog('❌ Erro ao criar sala');
-        }
-    }
-
-    async function joinRoom() {
-        console.log("Entrando na sala...");
-        
-        if (!gameState.firebaseReady) {
-            addLog('❌ Firebase não está carregado!');
-            return;
-        }
-
-        const roomId = document.getElementById('room-id').value.trim();
-        const playerName = document.getElementById('player-name').value.trim();
-
-        if (!roomId || !playerName) {
-            addLog('❌ Preencha todos os campos!');
-            return;
+            try {
+                await firebaseDB.ref('rooms/' + roomId).set(roomData);
+                console.log("✅ Sala criada:", roomId);
+                addLogEntry(`Sala "${roomName}" criada! Código: ${roomId}`);
+                
+                window.gameState.currentRoom = roomId;
+                window.gameState.playerName = hostName;
+                window.gameState.isHost = true;
+                window.gameState.playerId = playerId;
+                window.gameState.class = 'host';
+                
+                enterRoom(roomId, hostName, playerId);
+                
+            } catch (error) {
+                console.error("❌ Erro ao criar sala:", error);
+                alert("Erro ao criar sala: " + error.message);
+            }
         }
 
-        try {
-            const roomRef = window.firebase.ref(window.firebase.database, `rooms/${roomId}`);
-            const snapshot = await window.firebase.get(roomRef);
-
-            if (!snapshot.exists()) {
-                addLog('❌ Sala não encontrada!');
+        async function joinRoom() {
+            const roomId = document.getElementById('room-id').value.trim().toUpperCase();
+            const playerName = document.getElementById('player-name').value;
+            
+            if (!roomId || !playerName) {
+                alert('Por favor, preencha todos os campos');
                 return;
             }
-
-            const roomData = snapshot.val();
-            const playerCount = Object.keys(roomData.players || {}).length;
             
-            if (playerCount >= 6) {
-                addLog('❌ Sala cheia! Máximo 6 jogadores.');
-                return;
-            }
-
-            gameState.roomId = roomId;
-            gameState.playerId = 'player_' + Date.now();
-            gameState.isHost = false;
-
-            const playerData = {
-                name: playerName,
-                role: 'survivor',
-                isHost: false,
-                isPlaying: true,
-                inventory: [],
-                skills: [],
-                joinedAt: Date.now()
-            };
-
-            await window.firebase.set(
-                window.firebase.ref(window.firebase.database, `rooms/${roomId}/players/${gameState.playerId}`),
-                playerData
-            );
-
-            listenToRoomChanges(roomId);
-            updateUIForRoom(roomId);
-            addLog(`✅ Entrou na sala como ${playerName}`);
-            
-        } catch (error) {
-            console.error("Erro:", error);
-            addLog('❌ Erro ao entrar na sala');
-        }
-    }
-
-    function listenToRoomChanges(roomId) {
-        const roomRef = window.firebase.ref(window.firebase.database, `rooms/${roomId}`);
-        
-        window.firebase.onValue(roomRef, (snapshot) => {
-            if (snapshot.exists()) {
+            try {
+                const snapshot = await firebaseDB.ref('rooms/' + roomId).once('value');
                 const roomData = snapshot.val();
-                gameState.currentRoom = roomData;
                 
-                updatePlayersList();
-                updateGameState(roomData.game);
+                if (!roomData) {
+                    alert('Sala não encontrada! Verifique o código.');
+                    return;
+                }
                 
-                if (roomData.players && roomData.players[gameState.playerId]) {
-                    const player = roomData.players[gameState.playerId];
-                    gameState.currentRole = player.role;
-                    gameState.inventory = player.inventory || [];
-                    gameState.playerSkills = player.skills || [];
+                const playerCount = Object.keys(roomData.players || {}).length;
+                if (playerCount >= 8) {
+                    alert('Sala cheia! Máximo de 8 jogadores.');
+                    return;
+                }
+                
+                const playerId = 'player_' + Date.now();
+                const playerData = {
+                    name: playerName,
+                    role: 'unassigned',
+                    class: null,
+                    isHost: false,
+                    inventory: {},
+                    skills: [],
+                    joinedAt: Date.now()
+                };
+                
+                await firebaseDB.ref('rooms/' + roomId + '/players/' + playerId).set(playerData);
+                
+                console.log("✅ Jogador entrou na sala:", roomId);
+                addLogEntry(`${playerName} entrou na sala`);
+                
+                window.gameState.currentRoom = roomId;
+                window.gameState.playerName = playerName;
+                window.gameState.isHost = false;
+                window.gameState.playerId = playerId;
+                
+                enterRoom(roomId, playerName, playerId);
+                
+            } catch (error) {
+                console.error("❌ Erro ao entrar na sala:", error);
+                alert("Erro ao entrar na sala: " + error.message);
+            }
+        }
+
+        async function leaveRoom() {
+            if (!window.gameState.currentRoom || !window.gameState.playerId) return;
+            
+            try {
+                await firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players/' + window.gameState.playerId).remove();
+                
+                addLogEntry(`${window.gameState.playerName} saiu da sala`);
+                
+                window.gameState.currentRoom = null;
+                window.gameState.playerName = null;
+                window.gameState.isHost = false;
+                window.gameState.playerId = null;
+                window.gameState.class = null;
+                window.gameState.role = null;
+                window.gameState.skills = [];
+                window.gameState.inventory = {};
+                
+                document.querySelector('.room-system').style.display = 'grid';
+                document.getElementById('room-management').style.display = 'none';
+                document.getElementById('host-controls').style.display = 'none';
+                document.getElementById('class-powers').style.display = 'none';
+                
+                updateSkillsDisplay();
+                updateInventoryDisplay();
+                
+                console.log("✅ Jogador saiu da sala");
+                
+            } catch (error) {
+                console.error("❌ Erro ao sair da sala:", error);
+            }
+        }
+
+        function enterRoom(roomId, playerName, playerId) {
+            document.querySelector('.room-system').style.display = 'none';
+            document.getElementById('room-management').style.display = 'block';
+            document.getElementById('room-code-display').textContent = `Código: ${roomId}`;
+            
+            // Mostrar controles do host se for host
+            if (window.gameState.isHost) {
+                document.getElementById('host-controls').style.display = 'block';
+            }
+            
+            // Monitorar sala em tempo real
+            firebaseDB.ref('rooms/' + roomId).on('value', (snapshot) => {
+                const roomData = snapshot.val();
+                if (roomData) {
+                    updatePlayersList(roomData.players);
+                    updateGameState(roomData.game);
                     
-                    updateInventoryDisplay();
-                    updateSkillsDisplay();
+                    const playerCount = Object.keys(roomData.players || {}).length;
+                    document.getElementById('player-count').textContent = `${playerCount}/8`;
                     
-                    // Atualizar controles baseados no role
-                    if (player.role === 'assassin') {
-                        document.getElementById('assassin-powers').style.display = 'block';
-                        updateAssassinPowersDisplay();
+                    // Atualizar estado local do jogador
+                    if (roomData.players && roomData.players[playerId]) {
+                        const player = roomData.players[playerId];
+                        window.gameState.role = player.role;
+                        window.gameState.class = player.class;
+                        window.gameState.skills = player.skills || [];
+                        window.gameState.inventory = player.inventory || {};
+                        
+                        updateSkillsDisplay();
+                        updateInventoryDisplay();
+                        updateClassPowers();
+                        updateCraftVisibility();
+                    }
+                }
+            });
+            
+            addLogEntry(`🎮 Entrou na sala ${roomId} como ${playerName}`);
+        }
+
+        function updatePlayersList(players) {
+            const playersList = document.getElementById('players-list');
+            playersList.innerHTML = '';
+            
+            Object.keys(players).forEach(playerId => {
+                const player = players[playerId];
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                
+                // NÃO MOSTRA A CLASSE ESPECÍFICA PARA NENHUM JOGADOR, APENAS O HOST VÊ TUDO
+                let classInfo = '';
+                if (window.gameState.isHost) {
+                    if (player.class && GAME_CLASSES[player.class]) {
+                        classInfo = `<div class="player-role">${GAME_CLASSES[player.class].name}</div>`;
+                    } else if (player.class === 'host') {
+                        classInfo = `<div class="player-role">Host 👑</div>`;
+                    } else {
+                        classInfo = `<div class="player-role">Não atribuído</div>`;
+                    }
+                } else {
+                    // Para jogadores normais, mostra apenas se é host ou não
+                    if (player.isHost) {
+                        classInfo = `<div class="player-role">Host 👑</div>`;
+                    } else {
+                        classInfo = `<div class="player-role">Jogador</div>`;
+                    }
+                }
+                
+                // Ações do host (só mostra se for host e não for ele mesmo)
+                let actions = '';
+                if (window.gameState.isHost && playerId !== window.gameState.playerId) {
+                    actions = `
+                        <div class="player-actions">
+                            <button class="player-action-btn btn-primary" onclick="showAssignClassModal('${playerId}', '${player.name}')">🎭 Classe</button>
+                            <button class="player-action-btn btn-warning" onclick="managePlayerInventory('${playerId}', '${player.name}')">🎒 Inventário</button>
+                            <button class="player-action-btn btn-danger" onclick="removePlayerItem('${playerId}', '${player.name}')">❌ Remover Item</button>
+                        </div>
+                    `;
+                }
+                
+                playerCard.innerHTML = `
+                    <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+                    <div class="player-info">
+                        <div class="player-name">
+                            ${player.name}
+                            ${player.isHost ? '👑' : ''}
+                        </div>
+                        ${classInfo}
+                    </div>
+                    ${actions}
+                `;
+                playersList.appendChild(playerCard);
+            });
+        }
+
+        function updateGameState(gameData) {
+            if (gameData.weather) {
+                document.getElementById('weather-text').textContent = gameData.weather;
+            }
+            if (gameData.weatherEffect) {
+                document.getElementById('weather-effect').textContent = gameData.weatherEffect;
+            }
+        }
+
+        // ===== SISTEMA DE CRAFT VISÍVEL POR CLASSE =====
+        function updateCraftVisibility() {
+            const playerClass = window.gameState.class;
+            
+            // Sempre mostrar craft básico para todos
+            document.getElementById('craft-basic').style.display = 'block';
+            
+            // Ocultar todos os crafts específicos inicialmente
+            document.getElementById('craft-survival').style.display = 'none';
+            document.getElementById('craft-medicine').style.display = 'none';
+            document.getElementById('craft-advanced').style.display = 'none';
+            
+            // Se for host, mostrar tudo
+            if (window.gameState.isHost) {
+                document.getElementById('craft-survival').style.display = 'block';
+                document.getElementById('craft-medicine').style.display = 'block';
+                document.getElementById('craft-advanced').style.display = 'block';
+                return;
+            }
+            
+            // Mostrar crafts baseado na classe
+            if (playerClass && GAME_CLASSES[playerClass]) {
+                const classInfo = GAME_CLASSES[playerClass];
+                
+                if (classInfo.type === 'survivor') {
+                    document.getElementById('craft-survival').style.display = 'block';
+                    
+                    if (classInfo.name.includes('Médico')) {
+                        document.getElementById('craft-medicine').style.display = 'block';
                     }
                     
-                    if (gameState.isHost) {
-                        document.getElementById('host-controls').style.display = 'block';
+                    if (classInfo.name.includes('Engenheiro')) {
+                        document.getElementById('craft-advanced').style.display = 'block';
+                    }
+                }
+            }
+        }
+
+        // ===== SISTEMA DE CLASSES E CONTROLES DO HOST =====
+        let currentTargetPlayerId = null;
+        let selectedClassId = null;
+
+        function showPlayerManagement() {
+            if (!window.gameState.isHost) return;
+            
+            const modal = document.getElementById('player-management-modal');
+            const playerList = document.getElementById('player-management-list');
+            
+            // Buscar dados atualizados da sala
+            firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players').once('value').then((snapshot) => {
+                const players = snapshot.val();
+                playerList.innerHTML = '';
+                
+                Object.keys(players).forEach(playerId => {
+                    const player = players[playerId];
+                    if (playerId === window.gameState.playerId) return; // Pular o host
+                    
+                    const playerItem = document.createElement('div');
+                    playerItem.className = 'player-card';
+                    playerItem.innerHTML = `
+                        <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+                        <div class="player-info">
+                            <div class="player-name">${player.name}</div>
+                            <div class="player-role">${player.class ? GAME_CLASSES[player.class]?.name || player.class : 'Não atribuído'}</div>
+                        </div>
+                        <div class="player-actions">
+                            <button class="player-action-btn btn-primary" onclick="showAssignClassModal('${playerId}', '${player.name}')">🎭 Classe</button>
+                            <button class="player-action-btn btn-warning" onclick="managePlayerInventory('${playerId}', '${player.name}')">🎒 Inventário</button>
+                            <button class="player-action-btn btn-danger" onclick="removePlayerItem('${playerId}', '${player.name}')">❌ Remover Item</button>
+                        </div>
+                    `;
+                    playerList.appendChild(playerItem);
+                });
+            });
+            
+            modal.style.display = 'flex';
+        }
+
+        function showAssignClassModal(playerId, playerName) {
+            currentTargetPlayerId = playerId;
+            selectedClassId = null;
+            document.getElementById('target-player-name').textContent = playerName;
+            
+            const classSelection = document.getElementById('class-selection');
+            classSelection.innerHTML = '';
+            
+            // Classes de assassinos
+            const assassinClasses = document.createElement('div');
+            assassinClasses.innerHTML = '<h4>🔪 Assassinos</h4>';
+            Object.keys(GAME_CLASSES).forEach(classId => {
+                if (GAME_CLASSES[classId].type === 'assassin') {
+                    const classOption = document.createElement('div');
+                    classOption.className = 'class-option';
+                    classOption.innerHTML = `
+                        <strong>${GAME_CLASSES[classId].name}</strong>
+                        <div style="font-size: 12px; color: var(--muted);">${GAME_CLASSES[classId].description}</div>
+                    `;
+                    classOption.onclick = () => {
+                        // Remover seleção anterior
+                        document.querySelectorAll('.class-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        // Selecionar esta classe
+                        classOption.classList.add('selected');
+                        selectedClassId = classId;
+                    };
+                    assassinClasses.appendChild(classOption);
+                }
+            });
+            classSelection.appendChild(assassinClasses);
+            
+            // Classes de sobreviventes
+            const survivorClasses = document.createElement('div');
+            survivorClasses.innerHTML = '<h4>🏕️ Sobreviventes</h4>';
+            Object.keys(GAME_CLASSES).forEach(classId => {
+                if (GAME_CLASSES[classId].type === 'survivor') {
+                    const classOption = document.createElement('div');
+                    classOption.className = 'class-option';
+                    classOption.innerHTML = `
+                        <strong>${GAME_CLASSES[classId].name}</strong>
+                        <div style="font-size: 12px; color: var(--muted);">${GAME_CLASSES[classId].description}</div>
+                    `;
+                    classOption.onclick = () => {
+                        // Remover seleção anterior
+                        document.querySelectorAll('.class-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        // Selecionar esta classe
+                        classOption.classList.add('selected');
+                        selectedClassId = classId;
+                    };
+                    survivorClasses.appendChild(classOption);
+                }
+            });
+            classSelection.appendChild(survivorClasses);
+            
+            // Opção sem classe
+            const noClassOption = document.createElement('div');
+            noClassOption.className = 'class-option';
+            noClassOption.innerHTML = `
+                <strong>Sem Classe</strong>
+                <div style="font-size: 12px; color: var(--muted);">Jogador sem habilidades especiais</div>
+            `;
+            noClassOption.onclick = () => {
+                document.querySelectorAll('.class-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                noClassOption.classList.add('selected');
+                selectedClassId = null;
+            };
+            classSelection.appendChild(noClassOption);
+            
+            document.getElementById('assign-class-modal').style.display = 'flex';
+        }
+
+        async function assignClassToPlayer() {
+            if (!currentTargetPlayerId) {
+                alert('Nenhum jogador selecionado!');
+                return;
+            }
+            
+            if (selectedClassId === null) {
+                alert('Por favor, selecione uma classe ou "Sem Classe"');
+                return;
+            }
+            
+            const classInfo = selectedClassId ? GAME_CLASSES[selectedClassId] : null;
+            
+            // Buscar dados atuais do jogador
+            const playerRef = firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players/' + currentTargetPlayerId);
+            const snapshot = await playerRef.once('value');
+            const playerData = snapshot.val();
+            
+            const updates = {};
+            updates[`players/${currentTargetPlayerId}/class`] = selectedClassId;
+            updates[`players/${currentTargetPlayerId}/role`] = classInfo ? classInfo.type : 'unassigned';
+            
+            // Atribuir habilidades iniciais se tiver uma classe
+            if (classInfo && classInfo.powers) {
+                const initialSkills = classInfo.powers.slice(0, 2).map(power => power.id);
+                updates[`players/${currentTargetPlayerId}/skills`] = initialSkills;
+            } else {
+                updates[`players/${currentTargetPlayerId}/skills`] = [];
+            }
+            
+            // Adicionar itens iniciais da classe
+            if (classInfo && classInfo.startingItems) {
+                const currentInventory = playerData.inventory || {};
+                const newInventory = {...currentInventory};
+                
+                Object.keys(classInfo.startingItems).forEach(item => {
+                    const quantity = classInfo.startingItems[item];
+                    if (newInventory[item]) {
+                        newInventory[item] += quantity;
+                    } else {
+                        newInventory[item] = quantity;
+                    }
+                });
+                
+                updates[`players/${currentTargetPlayerId}/inventory`] = newInventory;
+            }
+            
+            try {
+                await firebaseDB.ref('rooms/' + window.gameState.currentRoom).update(updates);
+                addLogEntry(`🎭 ${window.gameState.playerName} atribuiu a classe ${classInfo ? classInfo.name : 'Nenhuma'} para ${playerData.name}`, 'host');
+                document.getElementById('assign-class-modal').style.display = 'none';
+                
+                // Mostrar mensagem especial se for uma classe de assassino
+                if (classInfo && classInfo.type === 'assassin') {
+                    addLogEntry(`🔪 ${playerData.name} recebeu itens secretos de ${classInfo.name}!`, 'host');
+                }
+            } catch (error) {
+                console.error("Erro ao atribuir classe:", error);
+                alert("Erro ao atribuir classe: " + error.message);
+            }
+        }
+
+        async function managePlayerInventory(playerId, playerName) {
+            // Buscar inventário do jogador
+            const snapshot = await firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players/' + playerId + '/inventory').once('value');
+            const inventory = snapshot.val() || {};
+            
+            let message = `Inventário de ${playerName}:\n`;
+            Object.keys(inventory).forEach(item => {
+                message += `${item}: ${inventory[item]}\n`;
+            });
+            
+            const itemToAdd = prompt(`${message}\n\nDigite o nome do item para adicionar (ou cancelar para pular):`);
+            if (itemToAdd) {
+                const quantity = parseInt(prompt(`Quantidade de ${itemToAdd} para adicionar:`) || "1");
+                
+                if (!isNaN(quantity) && quantity > 0) {
+                    const updates = {};
+                    if (!inventory[itemToAdd]) {
+                        updates[`players/${playerId}/inventory/${itemToAdd}`] = quantity;
+                    } else {
+                        updates[`players/${playerId}/inventory/${itemToAdd}`] = inventory[itemToAdd] + quantity;
                     }
                     
-                    // Mostrar crafts baseados em skills
-                    if (player.skills.includes('crafting')) {
-                        document.getElementById('advanced-craft').style.display = 'block';
+                    await firebaseDB.ref('rooms/' + window.gameState.currentRoom).update(updates);
+                    addLogEntry(`📦 Host adicionou ${quantity} ${itemToAdd} para ${playerName}`, 'host');
+                }
+            }
+        }
+
+        async function removePlayerItem(playerId, playerName) {
+            const snapshot = await firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players/' + playerId + '/inventory').once('value');
+            const inventory = snapshot.val() || {};
+            
+            if (Object.keys(inventory).length === 0) {
+                alert(`${playerName} não possui itens no inventário!`);
+                return;
+            }
+            
+            let message = `Inventário de ${playerName}:\n`;
+            Object.keys(inventory).forEach(item => {
+                message += `${item}: ${inventory[item]}\n`;
+            });
+            
+            const itemToRemove = prompt(`${message}\n\nDigite o nome exato do item para remover:`);
+            if (itemToRemove && inventory[itemToRemove] !== undefined) {
+                const quantity = parseInt(prompt(`Quantidade de ${itemToRemove} para remover (atual: ${inventory[itemToRemove]}):`) || "1");
+                
+                if (!isNaN(quantity) && quantity > 0) {
+                    const newQuantity = inventory[itemToRemove] - quantity;
+                    const updates = {};
+                    if (newQuantity <= 0) {
+                        updates[`players/${playerId}/inventory/${itemToRemove}`] = null;
+                    } else {
+                        updates[`players/${playerId}/inventory/${itemToRemove}`] = newQuantity;
                     }
-                    if (player.skills.includes('survival')) {
-                        document.getElementById('survival-craft').style.display = 'block';
+                    
+                    try {
+                        await firebaseDB.ref('rooms/' + window.gameState.currentRoom).update(updates);
+                        addLogEntry(`❌ Host removeu ${quantity} ${itemToRemove} de ${playerName}`, 'host');
+                    } catch (error) {
+                        console.error("Erro ao remover item:", error);
+                        alert("Erro ao remover item: " + error.message);
                     }
+                }
+            }
+        }
+
+        async function nextTurn() {
+            if (!window.gameState.isHost) return;
+            
+            const roomRef = firebaseDB.ref('rooms/' + window.gameState.currentRoom);
+            const snapshot = await roomRef.once('value');
+            const roomData = snapshot.val();
+            
+            const currentTurn = roomData.game.turn || 1;
+            const currentDay = roomData.game.day || 1;
+            const newTurn = currentTurn + 1;
+            const newDay = currentTurn % 3 === 0 ? currentDay + 1 : currentDay;
+            
+            // CORREÇÃO: Usar a chave correta para o dia
+            const updates = {
+                'game/turn': newTurn,
+                'game/day': newDay,
+                'game/phase': roomData.game.phase === 'day' ? 'night' : 'day'
+            };
+            
+            // Mudar clima aleatoriamente a cada dia
+            if (newTurn % 3 === 0) {
+                const weatherEvents = [
+                    { weather: "🌞 Dia Ensolarado", effect: "Calor intenso - Consumo de água dobrado" },
+                    { weather: "🌧️ Chuva Torrencial", effect: "Recursos molhados - Dificuldade para fazer fogo" },
+                    { weather: "🌫️ Nevoeiro Espesso", effect: "Visibilidade reduzida - Dificuldade em explorar" },
+                    { weather: "❄️ Frio Extremo", effect: "Consumo de comida dobrado" },
+                    { weather: "🌪️ Tempestade de Areia", effect: "Impossível explorar - Todos perdem 1 recurso" },
+                    { weather: "🌌 Noite Estrelada", effect: "Visão melhorada - Bônus em exploração noturna" }
+                ];
+                const randomWeather = weatherEvents[Math.floor(Math.random() * weatherEvents.length)];
+                // CORREÇÃO: Usar a variável newDay corretamente
+                updates['game/weather'] = `Dia ${newDay} - ${randomWeather.weather}`;
+                updates['game/weatherEffect'] = randomWeather.effect;
+            }
+            
+            await roomRef.update(updates);
+            addLogEntry(`⏭️ Turno ${newTurn} iniciado! Fase: ${updates['game/phase'] === 'day' ? 'Dia' : 'Noite'}`, 'host');
+        }
+
+        async function giveResources() {
+            if (!window.gameState.isHost) return;
+            
+            const resources = ["Água", "Comida", "Madeira", "Pedra", "Folhas", "Corda"];
+            const randomResource = resources[Math.floor(Math.random() * resources.length)];
+            
+            const roomRef = firebaseDB.ref('rooms/' + window.gameState.currentRoom);
+            const snapshot = await roomRef.once('value');
+            const roomData = snapshot.val();
+            const players = roomData.players;
+            
+            const updates = {};
+            Object.keys(players).forEach(playerId => {
+                const currentInventory = players[playerId].inventory || {};
+                if (!currentInventory[randomResource]) {
+                    updates[`players/${playerId}/inventory/${randomResource}`] = 1;
+                } else {
+                    updates[`players/${playerId}/inventory/${randomResource}`] = currentInventory[randomResource] + 1;
+                }
+            });
+            
+            await roomRef.update(updates);
+            addLogEntry(`📦 O host distribuiu 1 ${randomResource} para todos os jogadores!`, 'host');
+        }
+
+        function sendRandomMessage() {
+            if (!window.gameState.isHost) return;
+            
+            const messages = [
+                "Você ouve ruídos estranhos vindo da floresta...",
+                "O vento traz um cheiro estranho... algo queimando?",
+                "Alguém está observando você... você sente...",
+                "Os animais silenciaram subitamente...",
+                "Uma sensação de perigo paira no ar...",
+                "Você encontra pegadas estranhas no chão...",
+                "Um objeto brilhante chama sua atenção à distância...",
+                "Você sente frio repentinamente... muito frio...",
+                "Um uivo ecoa na distância...",
+                "Algo se move rapidamente entre as árvores..."
+            ];
+            
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            addLogEntry(`💬 ${randomMessage}`, 'host');
+        }
+
+        function triggerRandomEvent() {
+            if (!window.gameState.isHost) return;
+            
+            const events = [
+                { type: "resource", message: "💎 Uma mina de recursos foi descoberta! Todos ganham +2 recursos." },
+                { type: "danger", message: "🐺 Lobos atacam o acampamento! Todos perdem 1 item aleatório." },
+                { type: "mystery", message: "🔮 Um evento misterioso ocorre... algo mudou no deserto." },
+                { type: "luck", message: "🍀 Sorte do principiante! Um jogador aleatório ganha um item raro." },
+                { type: "discovery", message: "🗺️ Um mapa antigo é encontrado, revelando locais secretos!" },
+                { type: "storm", message: "⛈️ Uma tempestade se aproxima! Preparem-se!" }
+            ];
+            
+            const randomEvent = events[Math.floor(Math.random() * events.length)];
+            addLogEntry(`🎲 ${randomEvent.message}`, 'host');
+        }
+
+        function useClassPower(powerId) {
+            if (!window.gameState.class) return;
+            
+            const classInfo = GAME_CLASSES[window.gameState.class];
+            if (!classInfo) return;
+            
+            const power = classInfo.powers.find(p => p.id === powerId);
+            if (!power) return;
+            
+            // Mensagem secreta para assassinos (só o host vê o detalhe completo)
+            if (classInfo.type === 'assassin') {
+                addLogEntry(`🔮 ${window.gameState.playerName} usou uma habilidade secreta`, 'assassin');
+                // Host vê detalhes completos
+                if (window.gameState.isHost) {
+                    addLogEntry(`👁️ [SOMENTE HOST] ${window.gameState.playerName} usou: ${power.name} - ${power.description}`, 'host');
                 }
             } else {
-                addLog('❌ Sala foi fechada!');
-                leaveRoom();
+                addLogEntry(`🔮 ${window.gameState.playerName} usou: ${power.name}`);
             }
-        });
-    }
-
-    function updatePlayersList() {
-        if (!gameState.currentRoom || !gameState.currentRoom.players) return;
-        
-        const list = document.getElementById('players-list');
-        list.innerHTML = '';
-        const players = gameState.currentRoom.players;
-
-        Object.entries(players).forEach(([id, player]) => {
-            const playerElement = document.createElement('div');
-            playerElement.className = 'player-card';
             
-            playerElement.innerHTML = `
-                <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
-                <div class="player-info">
-                    <div class="player-name">
-                        ${player.name}
-                        ${player.isHost ? '👑' : ''}
-                        ${id === gameState.playerId ? ' (Você)' : ''}
-                    </div>
-                    <div class="player-role">${getRoleDisplay(player.role)}</div>
-                </div>
-            `;
-
-            list.appendChild(playerElement);
-        });
-
-        document.getElementById('player-count').textContent = 
-            `Jogadores: ${Object.keys(players).length}/6`;
-    }
-
-    function updateGameState(gameData) {
-        if (gameData) {
-            document.getElementById('weather-text').textContent = `${gameData.weather} - Dia ${gameData.day}`;
-            document.getElementById('weather-effect').textContent = gameData.weatherEffect;
-            document.getElementById('weather-event').style.display = 'block';
-        }
-    }
-
-    function updateUIForRoom(roomId) {
-        document.getElementById('room-management').style.display = 'block';
-        document.getElementById('room-code-display').textContent = `Código: ${roomId}`;
-        
-        // Mudar para aba do jogo
-        document.querySelector('.menu-btn[data-tab="game"]').click();
-    }
-
-    // Sistema de Ações do Jogo
-    async function explore() {
-        if (!canPerformAction()) return;
-        
-        const roll = rollDice(20);
-        addLog(`🔍 Vasculhando... Rolou ${roll} no D20`);
-
-        if (roll > 12) {
-            const item = getRandomItem('comum');
-            if (item) {
-                addLog(`🎉 Encontrou: ${item.emoji} ${item.name}`);
-                await addItemToInventory(item);
+            // Efeitos específicos para cada poder
+            switch(powerId) {
+                case 'weather_prediction':
+                    const futureWeather = [
+                        "amanhã fará calor intenso",
+                        "uma tempestade se aproxima",
+                        "o clima será ameno pelos próximos dias",
+                        "uma frente fria está vindo",
+                        "haverá uma tempestade de areia"
+                    ];
+                    const prediction = futureWeather[Math.floor(Math.random() * futureWeather.length)];
+                    addLogEntry(`🌤️ O vidente prevê: ${prediction}`);
+                    break;
+                    
+                case 'hunt':
+                    // Adicionar comida ao inventário
+                    if (!window.gameState.inventory["Comida"]) {
+                        window.gameState.inventory["Comida"] = 2;
+                    } else {
+                        window.gameState.inventory["Comida"] += 2;
+                    }
+                    updateInventoryDisplay();
+                    addLogEntry(`🍖 ${window.gameState.playerName} caçou e obteve 2 unidades de comida!`);
+                    break;
+                    
+                case 'mirage':
+                    addLogEntry(`🌅 ${window.gameState.playerName} criou uma miragem para confundir os inimigos!`);
+                    break;
+                    
+                // Adicione mais casos para outros poderes conforme necessário
             }
-        } else {
-            addLog('💨 Nada de útil encontrado...');
-        }
-    }
-
-    async function searchFood() {
-        if (!canPerformAction()) return;
-        
-        const roll = rollDice(8);
-        addLog(`🍖 Procurando comida... Rolou ${roll} no D8`);
-
-        if (roll > 3) {
-            const item = getRandomItem('comum');
-            if (item) {
-                addLog(`🍽️ Encontrou: ${item.emoji} ${item.name}`);
-                await addItemToInventory(item);
-            }
-        } else {
-            addLog('🐍 Um animal te afugentou!');
-        }
-    }
-
-    async function chopTree() {
-        if (!canPerformAction()) return;
-        
-        const roll = rollDice(8);
-        addLog(`🪓 Cortando árvore... Rolou ${roll} no D8`);
-
-        if (roll > 2) {
-            addLog('🎯 Madeira obtida!');
-            await addItemToInventory({ id: "wood", name: "Madeira", emoji: "🪵", type: "material" });
-        } else {
-            addLog('💢 A machada quebrou!');
-        }
-    }
-
-    async function collectCactus() {
-        if (!canPerformAction()) return;
-        
-        const roll = rollDice(6);
-        addLog(`🌵 Coletando cacto... Rolou ${roll} no D6`);
-
-        if (roll > 2) {
-            const item = getRandomItem('cacto');
-            if (item) {
-                addLog(`🌵 Coletou: ${item.emoji} ${item.name}`);
-                await addItemToInventory(item);
-            }
-        } else {
-            addLog('💉 Os espinhos te machucaram!');
-        }
-    }
-
-    async function searchWater() {
-        if (!canPerformAction()) return;
-        
-        const roll = rollDice(10);
-        addLog(`💧 Procurando água... Rolou ${roll} no D10`);
-
-        if (roll > 5) {
-            addLog(`💦 Encontrou água!`);
-            await addItemToInventory({ id: "dirty_water", name: "Água Suja", emoji: "💧", type: "consumable" });
-        } else {
-            addLog('🏜️ Nenhum sinal de água...');
-        }
-    }
-
-    async function collect() {
-        if (!canPerformAction()) return;
-        
-        const roll = rollDice(6);
-        addLog(`🌿 Coletando arbustos... Rolou ${roll} no D6`);
-
-        if (roll > 2) {
-            addLog('🌿 Galhos coletados!');
-            await addItemToInventory({ id: "stick", name: "Galho", emoji: "🌿", type: "material" });
-        } else {
-            addLog('🌱 Só folhas secas...');
-        }
-    }
-
-    async function searchFridge() {
-        if (!canPerformAction()) return;
-        
-        const roll = rollDice(8);
-        addLog(`🧊 Procurando na geladeira... Rolou ${roll} no D8`);
-
-        if (roll > 2) {
-            const item = getRandomItem('geladeira');
-            if (item) {
-                addLog(`🧊 Encontrou: ${item.emoji} ${item.name}`);
-                await addItemToInventory(item);
-            }
-        } else {
-            addLog('💀 Só coisas estragadas...');
-        }
-    }
-
-    async function searchFurniture() {
-        if (!canPerformAction()) return;
-        
-        const roll = rollDice(8);
-        addLog(`🪑 Vasculhando móveis... Rolou ${roll} no D8`);
-
-        if (roll > 3) {
-            const item = getRandomItem('moveis');
-            if (item) {
-                addLog(`🪑 Encontrou: ${item.emoji} ${item.name}`);
-                await addItemToInventory(item);
-            }
-        } else {
-            addLog('🕷️ Só aranhas...');
-        }
-    }
-
-    // Sistema de Inventário
-    async function addItemToInventory(item) {
-        gameState.inventory.push(item);
-        
-        if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
-            try {
-                await window.firebase.set(
-                    window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
-                    gameState.inventory
-                );
-            } catch (error) {
-                console.error("Erro ao salvar inventário:", error);
+            
+            // Atualizar inventário no Firebase
+            if (window.gameState.currentRoom && window.gameState.playerId) {
+                firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players/' + window.gameState.playerId + '/inventory')
+                    .set(window.gameState.inventory);
             }
         }
-        
-        updateInventoryDisplay();
-    }
 
-    function updateInventoryDisplay() {
-        const grid = document.getElementById('inventory-grid');
-        
-        if (gameState.inventory.length === 0) {
-            grid.innerHTML = `
-                <div class="empty-inventory">
-                    <span>🎒</span>
-                    <p>Seu inventário está vazio</p>
-                    <p>Use as ações do jogo para coletar itens!</p>
-                </div>
-            `;
-            return;
-        }
-        
-        grid.innerHTML = '';
-        
-        gameState.inventory.forEach((item, index) => {
-            const itemElement = document.createElement('div');
-            itemElement.className = 'item-card';
-            itemElement.innerHTML = `
-                <div class="item-icon">${item.emoji}</div>
-                <div class="item-name">${item.name}</div>
-                <div class="item-actions">
-                    <button class="item-btn btn-danger" onclick="removeItem(${index})">🗑️</button>
-                    <button class="item-btn btn-success" onclick="useItem(${index})">🔄</button>
-                </div>
-            `;
-            grid.appendChild(itemElement);
-        });
-    }
-
-    // Sistema de Craft
-    async function craftItem(recipeId) {
-        if (!gameState.roomId || !gameState.playerId) return;
-
-        if (!craftSystem.canCraft(recipeId, gameState.inventory)) {
-            addLog('❌ Ingredientes insuficientes!');
-            return;
-        }
-
-        const recipe = craftSystem.recipes[recipeId];
-        const newInventory = craftSystem.craft(recipeId, gameState.inventory);
-        
-        gameState.inventory = newInventory;
-        
-        if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
-            try {
-                await window.firebase.set(
-                    window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
-                    gameState.inventory
-                );
-            } catch (error) {
-                console.error("Erro ao salvar inventário:", error);
+        function updateClassPowers() {
+            const classPowersElement = document.getElementById('class-powers');
+            const powersGrid = document.getElementById('powers-grid');
+            
+            if (!window.gameState.class || !GAME_CLASSES[window.gameState.class]) {
+                classPowersElement.style.display = 'none';
+                return;
             }
-        }
-        
-        updateInventoryDisplay();
-        addLog(`🛠️ Craft bem-sucedido! Criou: ${recipe.emoji} ${recipe.name}`);
-    }
-
-    // Sistema de Habilidades
-    function updateSkillsDisplay() {
-        const skillsList = document.getElementById('skills-list');
-        
-        if (gameState.playerSkills.length === 0) {
-            skillsList.innerHTML = `
-                <div class="no-skills">
-                    <span>🎓</span>
-                    <p>Você ainda não possui habilidades</p>
-                    <p>O host pode atribuir habilidades durante o jogo</p>
-                </div>
-            `;
-            return;
-        }
-        
-        skillsList.innerHTML = '';
-        
-        gameState.playerSkills.forEach(skill => {
-            const skillData = skillSystem[skill];
-            if (skillData) {
-                const skillElement = document.createElement('div');
-                skillElement.className = 'skill-item skill-active';
-                skillElement.innerHTML = `
-                    <strong>${skillData.name}</strong>
-                    <div style="font-size: 12px; color: var(--muted); margin-top: 5px;">${skillData.description}</div>
-                    <div style="font-size: 11px; color: var(--success); margin-top: 3px;">${skillData.benefits}</div>
+            
+            const classInfo = GAME_CLASSES[window.gameState.class];
+            document.getElementById('class-powers-title').textContent = `Poderes do ${classInfo.name}`;
+            
+            powersGrid.innerHTML = '';
+            
+            classInfo.powers.forEach(power => {
+                const hasSkill = window.gameState.skills.includes(power.id);
+                const powerElement = document.createElement('button');
+                powerElement.className = 'power-btn';
+                powerElement.disabled = !hasSkill;
+                powerElement.innerHTML = `
+                    <span class="power-icon">${power.icon}</span>
+                    <span class="power-name">${power.name}</span>
+                    <span class="power-cooldown">${power.cooldown}</span>
                 `;
-                skillsList.appendChild(skillElement);
-            }
-        });
-    }
-
-    // Poderes do Assassino
-    async function useAssassinPower(powerId) {
-        if (!gameState.roomId || !gameState.playerId || gameState.currentRole !== 'assassin') return;
-
-        const power = gameState.assassinPowers[powerId];
-        const now = Date.now();
-        
-        if (now - power.lastUsed < power.cooldown) {
-            const remaining = Math.ceil((power.cooldown - (now - power.lastUsed)) / 1000 / 60);
-            addLog(`⏳ Habilidade em cooldown! Aguarde mais ${remaining} minutos.`);
-            return;
+                
+                if (hasSkill) {
+                    powerElement.addEventListener('click', () => useClassPower(power.id));
+                }
+                
+                powersGrid.appendChild(powerElement);
+            });
+            
+            classPowersElement.style.display = 'block';
         }
 
-        gameState.assassinPowers[powerId].lastUsed = now;
-        updateAssassinPowersDisplay();
-
-        const powerMessages = {
-            summon_wolves: '🐺 Você invocou lobos do deserto!',
-            shadow_walk: '👻 Você se move silenciosamente nas sombras...',
-            poison_dart: '🎯 Você prepara um dardo envenenado...'
-        };
-
-        addLog(powerMessages[powerId], true);
-    }
-
-    function updateAssassinPowersDisplay() {
-        if (gameState.currentRole !== 'assassin') return;
-
-        const now = Date.now();
-        Object.keys(gameState.assassinPowers).forEach(powerId => {
-            const btn = document.getElementById(powerId.replace(/_/g, '-'));
-            const power = gameState.assassinPowers[powerId];
+        function updateSkillsDisplay() {
+            const skillsList = document.getElementById('skills-list');
+            skillsList.innerHTML = '';
             
-            if (btn) {
-                const remaining = power.cooldown - (now - power.lastUsed);
-                if (remaining > 0) {
-                    btn.disabled = true;
-                    const minutes = Math.ceil(remaining / 1000 / 60);
-                    btn.querySelector('.power-cooldown').textContent = `${minutes}min CD`;
+            if (window.gameState.skills.length === 0) {
+                skillsList.innerHTML = `
+                    <div class="no-skills">
+                        <span>🎓</span>
+                        <p>Você ainda não possui habilidades</p>
+                        <p>O host pode atribuir habilidades durante o jogo</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Criar um mapa de todas as habilidades disponíveis
+            const allSkills = {};
+            Object.values(GAME_CLASSES).forEach(classInfo => {
+                classInfo.powers.forEach(power => {
+                    allSkills[power.id] = power;
+                });
+            });
+            
+            window.gameState.skills.forEach(skillId => {
+                const skill = allSkills[skillId];
+                if (skill) {
+                    const skillElement = document.createElement('div');
+                    skillElement.className = 'skill-item skill-active';
+                    skillElement.innerHTML = `
+                        <strong>${skill.name} ${skill.icon}</strong>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 5px;">${skill.description}</div>
+                        <div style="font-size: 10px; color: var(--accent); margin-top: 3px;">Recarga: ${skill.cooldown}</div>
+                    `;
+                    skillsList.appendChild(skillElement);
+                }
+            });
+        }
+
+        // ===== SISTEMA DE ITENS PERSONALIZADOS =====
+        function showCustomItemModal() {
+            if (!window.gameState.isHost) return;
+            
+            document.getElementById('custom-item-modal').style.display = 'flex';
+        }
+
+        async function updatePlayerSelectList() {
+            if (!window.gameState.isHost || !window.gameState.currentRoom) return;
+            
+            const snapshot = await firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players').once('value');
+            const players = snapshot.val();
+            const playerSelect = document.getElementById('custom-item-player');
+            
+            playerSelect.innerHTML = '<option value="">Selecione um jogador</option>';
+            
+            Object.keys(players).forEach(playerId => {
+                const player = players[playerId];
+                if (playerId === window.gameState.playerId) return; // Pular o host
+                
+                const option = document.createElement('option');
+                option.value = playerId;
+                option.textContent = player.name;
+                playerSelect.appendChild(option);
+            });
+        }
+
+        async function createCustomItem() {
+            if (!window.gameState.isHost) return;
+            
+            const itemName = document.getElementById('custom-item-name').value;
+            const itemIcon = document.getElementById('custom-item-icon').value;
+            const quantity = parseInt(document.getElementById('custom-item-quantity').value) || 1;
+            const rarity = document.getElementById('custom-item-rarity').value;
+            const target = document.getElementById('custom-item-target').value;
+            const specificPlayer = document.getElementById('custom-item-player').value;
+            
+            if (!itemName || !itemIcon) {
+                alert('Por favor, preencha o nome e emoji do item!');
+                return;
+            }
+            
+            if (target === 'specific' && !specificPlayer) {
+                alert('Por favor, selecione um jogador específico!');
+                return;
+            }
+            
+            const roomRef = firebaseDB.ref('rooms/' + window.gameState.currentRoom);
+            const snapshot = await roomRef.once('value');
+            const roomData = snapshot.val();
+            const players = roomData.players;
+            
+            const updates = {};
+            
+            // Criar o nome do item com o emoji fornecido
+            const fullItemName = `${itemIcon} ${itemName}`;
+            
+            if (target === 'all') {
+                // Adicionar item para todos os jogadores
+                Object.keys(players).forEach(playerId => {
+                    const currentInventory = players[playerId].inventory || {};
+                    if (!currentInventory[fullItemName]) {
+                        updates[`players/${playerId}/inventory/${fullItemName}`] = quantity;
+                    } else {
+                        updates[`players/${playerId}/inventory/${fullItemName}`] = currentInventory[fullItemName] + quantity;
+                    }
+                });
+                
+                // Mensagem no log para todos
+                const customMessages = LOG_MESSAGES.customItem;
+                const randomMessage = customMessages[Math.floor(Math.random() * customMessages.length)];
+                const message = randomMessage
+                    .replace('{player}', 'Todos')
+                    .replace('{item}', fullItemName);
+                    
+                addLogEntry(message);
+                
+            } else if (target === 'host') {
+                // Adicionar item apenas para o host
+                const currentInventory = window.gameState.inventory || {};
+                if (!currentInventory[fullItemName]) {
+                    window.gameState.inventory[fullItemName] = quantity;
                 } else {
-                    btn.disabled = false;
-                    btn.querySelector('.power-cooldown').textContent = 'Pronto';
+                    window.gameState.inventory[fullItemName] += quantity;
                 }
+                
+                updates[`players/${window.gameState.playerId}/inventory/${fullItemName}`] = window.gameState.inventory[fullItemName];
+                
+                // Mensagem no log apenas para o host
+                addLogEntry(`✨ Você criou ${quantity}x ${fullItemName}`, 'host');
+                
+            } else if (target === 'specific' && specificPlayer) {
+                // Adicionar item para um jogador específico
+                const playerInventory = players[specificPlayer].inventory || {};
+                if (!playerInventory[fullItemName]) {
+                    updates[`players/${specificPlayer}/inventory/${fullItemName}`] = quantity;
+                } else {
+                    updates[`players/${specificPlayer}/inventory/${fullItemName}`] = playerInventory[fullItemName] + quantity;
+                }
+                
+                const playerName = players[specificPlayer].name;
+                const customMessages = LOG_MESSAGES.customItem;
+                const randomMessage = customMessages[Math.floor(Math.random() * customMessages.length)];
+                const message = randomMessage
+                    .replace('{player}', playerName)
+                    .replace('{item}', fullItemName);
+                    
+                addLogEntry(message);
             }
-        });
-    }
-
-    // Controles do Host
-    async function assignRoles() {
-        if (!gameState.isHost) {
-            addLog('❌ Apenas o host pode sortear papéis!');
-            return;
-        }
-
-        const players = gameState.currentRoom.players;
-        const playerIds = Object.keys(players).filter(id => !players[id].isHost);
-
-        if (playerIds.length < 2) {
-            addLog('❌ Precisa de pelo menos 2 jogadores!');
-            return;
-        }
-
-        const assassinIndex = Math.floor(Math.random() * playerIds.length);
-        const updates = {};
-
-        playerIds.forEach((id, index) => {
-            const role = index === assassinIndex ? 'assassin' : 'survivor';
-            updates[`/rooms/${gameState.roomId}/players/${id}/role`] = role;
-        });
-
-        try {
-            await window.firebase.update(window.firebase.ref(window.firebase.database), updates);
-            addLog('🎭 Papéis sorteados! O assassino está entre vocês...');
-        } catch (error) {
-            console.error("Erro:", error);
-            addLog('❌ Erro ao sortear papéis');
-        }
-    }
-
-    async function nextTurn() {
-        if (!gameState.isHost) {
-            addLog('❌ Apenas o host pode avançar turnos!');
-            return;
-        }
-
-        const game = gameState.currentRoom.game;
-        game.turn += 1;
-        game.day = Math.floor(game.turn / 3) + 1;
-        
-        const weathers = [
-            { name: "🌞 Dia Ensolarado", effect: "Calor intenso" },
-            { name: "🌧️ Chuva Rara", effect: "Água disponível" },
-            { name: "🌬️ Ventania Forte", effect: "Dificuldade em explorar" }
-        ];
-        const newWeather = weathers[Math.floor(Math.random() * weathers.length)];
-        
-        game.weather = newWeather.name;
-        game.weatherEffect = newWeather.effect;
-
-        try {
-            await window.firebase.update(
-                window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/game`),
-                game
-            );
-            addLog(`⏭️ Dia ${game.day} - Turno ${game.turn} iniciado`);
-        } catch (error) {
-            console.error("Erro:", error);
-            addLog('❌ Erro ao avançar turno');
-        }
-    }
-
-    function sendRandomMessage() {
-        if (!gameState.isHost) return;
-        const messages = [
-            "🌅 O sol começa a nascer no horizonte...",
-            "🌌 As estrelas aparecem no céu escuro",
-            "💨 Uma brisa suave passa pelo acampamento",
-            "🌵 Cactos balançam lentamente ao vento"
-        ];
-        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-        addLog(`💬 ${randomMessage}`);
-    }
-
-    function triggerRandomEvent() {
-        if (!gameState.isHost) return;
-
-        const events = [
-            () => addLog('🌪️ UMA TEMPESTADE DE AREIA SE APROXIMA! Procurem abrigo!'),
-            () => addLog('💧 UMA FONTE DE ÁGUA FOI ENCONTRADA! Todos recuperam 1 de sede.'),
-            () => addLog('🐍 COBRAS VENENOSAS INVADEM O ACAMPAMENTO! Cuidado!')
-        ];
-
-        const randomEvent = events[Math.floor(Math.random() * events.length)];
-        randomEvent();
-    }
-
-    // Funções Utilitárias
-    function generateRoomId() {
-        return Math.random().toString(36).substring(2, 8).toUpperCase();
-    }
-
-    function getRandomItem(pool) {
-        const items = itemSystem[pool];
-        if (!items) return null;
-        return items[Math.floor(Math.random() * items.length)];
-    }
-
-    function getRoleDisplay(role) {
-        const roles = {
-            'host': '👑 Host',
-            'survivor': '😊 Sobrevivente',
-            'assassin': '🔪 Assassino',
-            'spectator': '👁️ Espectador'
-        };
-        return roles[role] || role;
-    }
-
-    function addLog(message, isPrivate = false) {
-        const log = document.getElementById('game-log');
-        const entry = document.createElement('div');
-        entry.className = 'log-entry';
-        
-        if (isPrivate) {
-            entry.style.background = 'rgba(255, 107, 53, 0.1)';
-            entry.style.border = '1px solid var(--accent)';
-            entry.textContent = `🔒 ${message}`;
-        } else {
-            entry.textContent = message;
-        }
-        
-        log.appendChild(entry);
-        log.scrollTop = log.scrollHeight;
-    }
-
-    function rollDice(sides) {
-        const result = Math.floor(Math.random() * sides) + 1;
-        addLog(`🎲 Rolou D${sides}: ${result}`);
-        return result;
-    }
-
-    function canPerformAction() {
-        if (!gameState.roomId || !gameState.playerId) {
-            addLog('❌ Entre em uma sala primeiro!');
-            return false;
-        }
-        return true;
-    }
-
-    async function leaveRoom() {
-        if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
+            
             try {
-                await window.firebase.remove(
-                    window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}`)
-                );
+                await roomRef.update(updates);
+                document.getElementById('custom-item-modal').style.display = 'none';
+                
+                // Limpar campos
+                document.getElementById('custom-item-name').value = '';
+                document.getElementById('custom-item-icon').value = '';
+                document.getElementById('custom-item-quantity').value = '1';
+                document.getElementById('custom-item-player').style.display = 'none';
+                
+                // Atualizar inventário local se for host
+                if (target === 'host') {
+                    updateInventoryDisplay();
+                }
+                
             } catch (error) {
-                console.error("Erro ao sair:", error);
+                console.error("Erro ao criar item personalizado:", error);
+                alert("Erro ao criar item personalizado: " + error.message);
             }
         }
 
-        // Resetar estado
-        gameState.roomId = null;
-        gameState.playerId = null;
-        gameState.isHost = false;
-        gameState.currentRoom = null;
-        gameState.inventory = [];
-        gameState.playerSkills = [];
-        
-        // Resetar UI
-        document.getElementById('room-management').style.display = 'none';
-        document.getElementById('host-controls').style.display = 'none';
-        document.getElementById('assassin-powers').style.display = 'none';
-        document.getElementById('weather-event').style.display = 'none';
-        document.getElementById('advanced-craft').style.display = 'none';
-        document.getElementById('survival-craft').style.display = 'none';
-        
-        updateInventoryDisplay();
-        updateSkillsDisplay();
-        addLog('🚪 Você saiu da sala');
-        
-        // Voltar para aba de salas
-        document.querySelector('.menu-btn[data-tab="rooms"]').click();
-    }
-
-    // Funções Globais
-    window.removeItem = async function(index) {
-        if (index >= 0 && index < gameState.inventory.length) {
-            const removedItem = gameState.inventory.splice(index, 1)[0];
+        // ===== SISTEMA DE CRAFT E INVENTÁRIO =====
+        function craftItem(recipe) {
+            if (!window.gameState.currentRoom) {
+                addLogEntry("❌ Entre em uma sala primeiro!");
+                return;
+            }
             
-            if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
-                try {
-                    await window.firebase.set(
-                        window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
-                        gameState.inventory
-                    );
-                } catch (error) {
-                    console.error("Erro:", error);
+            const recipes = {
+                'wooden_knife': { 
+                    name: "🔪 Faca de Madeira", 
+                    ingredients: {"🪵 Madeira": 2, "🪨 Pedra": 1},
+                    consumable: false,
+                    rarity: 'common'
+                },
+                'simple_shelter': { 
+                    name: "🏠 Abrigo Simples", 
+                    ingredients: {"🪵 Madeira": 5, "🌿 Folhas": 3},
+                    consumable: false,
+                    rarity: 'common'
+                },
+                'water_filter': { 
+                    name: "🧪 Filtro de Água", 
+                    ingredients: {"🍾 Garrafa": 1, "🌿 Folhas": 1, "🪨 Pedra": 1},
+                    consumable: true,
+                    rarity: 'uncommon'
+                },
+                'torch': { 
+                    name: "🔥 Tocha", 
+                    ingredients: {"🪵 Madeira": 1, "🌿 Folhas": 2},
+                    consumable: true,
+                    rarity: 'common'
+                },
+                'stone_axe': { 
+                    name: "🪓 Machado de Pedra", 
+                    ingredients: {"🪵 Madeira": 1, "🪨 Pedra": 2, "🪢 Corda": 1},
+                    consumable: false,
+                    rarity: 'uncommon'
+                },
+                'simple_trap': { 
+                    name: "🕸️ Armadilha Simples", 
+                    ingredients: {"🌿 Folhas": 2, "🪢 Corda": 1, "🪵 Madeira": 1},
+                    consumable: true,
+                    rarity: 'common'
+                },
+                'canteen': { 
+                    name: "🍶 Cantil", 
+                    ingredients: {"🍾 Garrafa": 1, "🪨 Pedra": 1},
+                    consumable: false,
+                    rarity: 'uncommon'
+                },
+                'basic_medkit': { 
+                    name: "💊 Kit Médico Básico", 
+                    ingredients: {"🌿 Folhas": 2, "🩹 Bandagem": 1},
+                    consumable: true,
+                    rarity: 'uncommon'
+                },
+                'antidote': { 
+                    name: "🧪 Antídoto Simples", 
+                    ingredients: {"🌿 Folhas": 3, "💧 Água": 1},
+                    consumable: true,
+                    rarity: 'rare'
+                },
+                'painkiller': { 
+                    name: "🌿 Analgésico Natural", 
+                    ingredients: {"🌿 Folhas": 2, "🌵 Cacto": 1},
+                    consumable: true,
+                    rarity: 'uncommon'
+                },
+                'fixed_radio': { 
+                    name: "📡 Rádio Reparado", 
+                    ingredients: {"📻 Rádio": 1, "🔌 Fios": 2, "🔩 Parafusos": 1},
+                    consumable: false,
+                    rarity: 'rare'
+                },
+                'advanced_medkit': { 
+                    name: "💊 Kit Médico Avançado", 
+                    ingredients: {"🩹 Bandagem": 2, "💊 Remédio": 1, "💧 Água": 1},
+                    consumable: true,
+                    rarity: 'rare'
+                },
+                'region_map': { 
+                    name: "🗺️ Mapa da Região", 
+                    ingredients: {"🌿 Folhas": 3, "🖊️ Caneta": 1},
+                    consumable: false,
+                    rarity: 'uncommon'
+                }
+            };
+            
+            const recipeInfo = recipes[recipe];
+            if (!recipeInfo) {
+                addLogEntry("❌ Receita não encontrada!");
+                return;
+            }
+            
+            // Verificar se o jogador tem os ingredientes necessários
+            let hasAllIngredients = true;
+            const missingIngredients = [];
+            
+            for (const [ingredient, quantity] of Object.entries(recipeInfo.ingredients)) {
+                if (!window.gameState.inventory[ingredient] || window.gameState.inventory[ingredient] < quantity) {
+                    hasAllIngredients = false;
+                    missingIngredients.push(`${quantity}x ${ingredient}`);
+                }
+            }
+            
+            if (!hasAllIngredients) {
+                addLogEntry(`❌ Faltam ingredientes: ${missingIngredients.join(', ')}`);
+                return;
+            }
+            
+            // Consumir os ingredientes
+            for (const [ingredient, quantity] of Object.entries(recipeInfo.ingredients)) {
+                window.gameState.inventory[ingredient] -= quantity;
+                if (window.gameState.inventory[ingredient] <= 0) {
+                    delete window.gameState.inventory[ingredient];
+                }
+            }
+            
+            // Adicionar o item craftado (se não for consumível)
+            if (!recipeInfo.consumable) {
+                if (!window.gameState.inventory[recipeInfo.name]) {
+                    window.gameState.inventory[recipeInfo.name] = 1;
+                } else {
+                    window.gameState.inventory[recipeInfo.name]++;
+                }
+            }
+            
+            // Mensagem customizada para craft
+            const craftMessages = LOG_MESSAGES.craftItem;
+            const randomMessage = craftMessages[Math.floor(Math.random() * craftMessages.length)];
+            const message = randomMessage
+                .replace('{player}', window.gameState.playerName)
+                .replace('{item}', recipeInfo.name);
+                
+            addLogEntry(message);
+            
+            // Se for um item consumível, aplicar efeito imediato
+            if (recipeInfo.consumable) {
+                switch(recipe) {
+                    case 'water_filter':
+                        if (!window.gameState.inventory["💧 Água Purificada"]) {
+                            window.gameState.inventory["💧 Água Purificada"] = 3;
+                        } else {
+                            window.gameState.inventory["💧 Água Purificada"] += 3;
+                        }
+                        addLogEntry(`💧 O filtro produziu 3 unidades de água purificada!`);
+                        break;
+                    case 'basic_medkit':
+                    case 'advanced_medkit':
+                        addLogEntry(`🩹 O kit médico foi usado para curar ferimentos!`);
+                        break;
+                    case 'antidote':
+                        addLogEntry(`💊 O antídoto curou envenenamentos!`);
+                        break;
+                    case 'painkiller':
+                        addLogEntry(`🌿 O analgésico aliviou a dor!`);
+                        break;
+                    case 'simple_trap':
+                        addLogEntry(`🕸️ A armadilha foi colocada e pode capturar pequenos animais!`);
+                        break;
+                    case 'torch':
+                        addLogEntry(`🔥 A tocha ilumina a área, facilitando exploração noturna!`);
+                        break;
                 }
             }
             
             updateInventoryDisplay();
-            addLog(`🗑️ Descarta: ${removedItem.emoji} ${removedItem.name}`);
+            
+            // Atualizar no Firebase
+            if (window.gameState.currentRoom && window.gameState.playerId) {
+                firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players/' + window.gameState.playerId + '/inventory')
+                    .set(window.gameState.inventory);
+            }
         }
-    };
 
-    window.useItem = async function(index) {
-        if (index >= 0 && index < gameState.inventory.length) {
-            const item = gameState.inventory[index];
-            addLog(`🔧 Usou: ${item.emoji} ${item.name}`);
+        function updateInventoryDisplay() {
+            const inventoryGrid = document.getElementById('inventory-grid');
+            inventoryGrid.innerHTML = '';
             
-            gameState.inventory.splice(index, 1);
+            if (Object.keys(window.gameState.inventory).length === 0) {
+                inventoryGrid.innerHTML = `
+                    <div class="empty-inventory">
+                        <span>🎒</span>
+                        <p>Seu inventário está vazio</p>
+                        <p>Use as ações do jogo para coletar itens!</p>
+                    </div>
+                `;
+                return;
+            }
             
-            if (gameState.firebaseReady && gameState.roomId && gameState.playerId) {
-                try {
-                    await window.firebase.set(
-                        window.firebase.ref(window.firebase.database, `rooms/${gameState.roomId}/players/${gameState.playerId}/inventory`),
-                        gameState.inventory
-                    );
-                } catch (error) {
-                    console.error("Erro:", error);
-                }
+            Object.keys(window.gameState.inventory).forEach(itemName => {
+                const quantity = window.gameState.inventory[itemName];
+                const itemCard = document.createElement('div');
+                itemCard.className = 'item-card';
+                
+                // Extrair emoji e nome do item
+                const firstSpaceIndex = itemName.indexOf(' ');
+                const itemIcon = firstSpaceIndex !== -1 ? itemName.substring(0, firstSpaceIndex) : "📦";
+                const displayName = firstSpaceIndex !== -1 ? itemName.substring(firstSpaceIndex + 1) : itemName;
+                
+                // Sistema de raridade
+                const rarities = {
+                    "🪵 Madeira": "common", "🪨 Pedra": "common", "🌿 Folhas": "common", "🌵 Cacto": "uncommon",
+                    "💧 Água": "common", "🍖 Comida": "common", "🪢 Corda": "uncommon", "🍾 Garrafa": "uncommon",
+                    "📻 Rádio": "rare", "🔌 Fios": "uncommon", "🔩 Parafusos": "uncommon", "🩹 Bandagem": "uncommon",
+                    "💊 Remédio": "rare", "🖊️ Caneta": "uncommon", "💧 Água Purificada": "uncommon"
+                };
+                
+                const rarity = rarities[itemName] || "common";
+                const rarityLabels = {
+                    "common": "Comum",
+                    "uncommon": "Incomum", 
+                    "rare": "Raro",
+                    "epic": "Épico",
+                    "legendary": "Lendário"
+                };
+                
+                itemCard.innerHTML = `
+                    <div class="item-rarity rarity-${rarity}">${rarityLabels[rarity]}</div>
+                    <div class="item-icon">${itemIcon}</div>
+                    <div class="item-name">${displayName}</div>
+                    <div class="item-quantity">${quantity}x</div>
+                    <div class="item-actions">
+                        <button class="item-btn btn-primary" onclick="useItem('${itemName}')">Usar</button>
+                        <button class="item-btn btn-danger" onclick="discardItem('${itemName}')">Descartar</button>
+                    </div>
+                `;
+                inventoryGrid.appendChild(itemCard);
+            });
+        }
+
+        function useItem(itemName) {
+            if (!window.gameState.inventory[itemName]) return;
+            
+            // Consumir o item
+            window.gameState.inventory[itemName]--;
+            if (window.gameState.inventory[itemName] <= 0) {
+                delete window.gameState.inventory[itemName];
+            }
+            
+            // Extrair nome para exibição
+            const firstSpaceIndex = itemName.indexOf(' ');
+            const displayName = firstSpaceIndex !== -1 ? itemName.substring(firstSpaceIndex + 1) : itemName;
+            
+            // Mensagem customizada para uso de item
+            const useMessages = LOG_MESSAGES.useItem;
+            const randomMessage = useMessages[Math.floor(Math.random() * useMessages.length)];
+            const message = randomMessage
+                .replace('{player}', window.gameState.playerName)
+                .replace('{item}', displayName);
+                
+            addLogEntry(message);
+            
+            // Efeitos dos itens
+            switch(displayName) {
+                case "Comida":
+                    addLogEntry(`🍖 ${window.gameState.playerName} comeu 1 comida e recuperou energia`);
+                    break;
+                case "Água":
+                    addLogEntry(`💧 ${window.gameState.playerName} bebeu 1 água e saciou a sede`);
+                    break;
+                case "Água Purificada":
+                    addLogEntry(`💧 ${window.gameState.playerName} bebeu 1 água purificada`);
+                    break;
+                case "Kit Médico Básico":
+                case "Kit Médico Avançado":
+                    addLogEntry(`🩹 ${window.gameState.playerName} usou um kit médico e curou ferimentos`);
+                    break;
+                case "Antídoto Simples":
+                    addLogEntry(`💊 ${window.gameState.playerName} usou um antídoto e removeu venenos`);
+                    break;
+                case "Analgésico Natural":
+                    addLogEntry(`🌿 ${window.gameState.playerName} usou um analgésico e aliviou a dolor`);
+                    break;
+                case "Tocha":
+                    addLogEntry(`🔥 ${window.gameState.playerName} acendeu uma tocha para iluminar a área`);
+                    break;
             }
             
             updateInventoryDisplay();
+            
+            // Atualizar no Firebase
+            if (window.gameState.currentRoom && window.gameState.playerId) {
+                firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players/' + window.gameState.playerId + '/inventory')
+                    .set(window.gameState.inventory);
+            }
         }
-    };
 
-    // Inicializar o jogo
-    initializeGame();
-});
+        function discardItem(itemName) {
+            if (!window.gameState.inventory[itemName]) return;
+            
+            // Extrair nome para exibição
+            const firstSpaceIndex = itemName.indexOf(' ');
+            const displayName = firstSpaceIndex !== -1 ? itemName.substring(firstSpaceIndex + 1) : itemName;
+            
+            if (confirm(`Tem certeza que deseja descartar ${displayName}?`)) {
+                delete window.gameState.inventory[itemName];
+                
+                // Mensagem customizada para descarte de item
+                const discardMessages = LOG_MESSAGES.discardItem;
+                const randomMessage = discardMessages[Math.floor(Math.random() * discardMessages.length)];
+                const message = randomMessage
+                    .replace('{player}', window.gameState.playerName)
+                    .replace('{item}', displayName);
+                    
+                addLogEntry(message);
+                
+                updateInventoryDisplay();
+                
+                // Atualizar no Firebase
+                if (window.gameState.currentRoom && window.gameState.playerId) {
+                    firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players/' + window.gameState.playerId + '/inventory')
+                        .set(window.gameState.inventory);
+                }
+            }
+        }
+
+        // ===== FUNÇÕES DO JOGO =====
+        function rollDice(diceType) {
+            const result = Math.floor(Math.random() * diceType) + 1;
+            addLogEntry(`🎲 ${window.gameState.playerName || 'Jogador'} rolou D${diceType}: ${result}`);
+        }
+
+        function performGameAction(action) {
+            if (!window.gameState.currentRoom) {
+                addLogEntry("❌ Entre em uma sala primeiro!");
+                return;
+            }
+            
+            // 50% de chance de não encontrar nada
+            if (Math.random() < 0.5) {
+                const noLuckMessages = LOG_MESSAGES.noItemFound;
+                const randomMessage = noLuckMessages[Math.floor(Math.random() * noLuckMessages.length)];
+                const message = randomMessage.replace('{player}', window.gameState.playerName);
+                addLogEntry(message);
+                return;
+            }
+            
+            const actions = {
+                'explore-btn': { name: "Vasculhar", icon: "🔍" },
+                'search-food': { name: "Procurar Comida", icon: "🍖" },
+                'chop-tree': { name: "Cortar Árvore", icon: "🪓" },
+                'collect-btn': { name: "Coletar Arbustos", icon: "🌿" },
+                'search-fridge': { name: "Procurar Geladeira", icon: "🧊" },
+                'search-furniture': { name: "Vasculhar Móveis", icon: "🪑" },
+                'cactus-btn': { name: "Coletar Cacto", icon: "🌵" },
+                'water-btn': { name: "Procurar Água", icon: "💧" }
+            };
+            
+            const actionInfo = actions[action];
+            if (actionInfo) {
+                addLogEntry(`${actionInfo.icon} ${window.gameState.playerName} ${actionInfo.name.toLowerCase()}`);
+                
+                // Recursos que podem ser encontrados com diferentes raridades
+                const resourceOptions = {
+                    'explore-btn': [
+                        {name: "🍾 Garrafa", rarity: "uncommon"}, 
+                        {name: "📻 Rádio", rarity: "rare"}, 
+                        {name: "🔌 Fios", rarity: "uncommon"}, 
+                        {name: "🔩 Parafusos", rarity: "uncommon"}, 
+                        {name: "🖊️ Caneta", rarity: "uncommon"}
+                    ],
+                    'search-food': [
+                        {name: "🍖 Comida", rarity: "common"}, 
+                        {name: "🍖 Comida", rarity: "common"}, 
+                        {name: "🍖 Comida", rarity: "common"}, 
+                        {name: "🌿 Folhas", rarity: "common"}, 
+                        {name: "🪢 Corda", rarity: "uncommon"}
+                    ],
+                    'chop-tree': [
+                        {name: "🪵 Madeira", rarity: "common"}, 
+                        {name: "🪵 Madeira", rarity: "common"}, 
+                        {name: "🪵 Madeira", rarity: "common"}, 
+                        {name: "🪢 Corda", rarity: "uncommon"}, 
+                        {name: "🌿 Folhas", rarity: "common"}
+                    ],
+                    'collect-btn': [
+                        {name: "🌿 Folhas", rarity: "common"}, 
+                        {name: "🌿 Folhas", rarity: "common"}, 
+                        {name: "🌿 Folhas", rarity: "common"}, 
+                        {name: "🪢 Corda", rarity: "uncommon"}, 
+                        {name: "🪨 Pedra", rarity: "common"},
+                        {name: "🌵 Cacto", rarity: "uncommon"},
+                        {name: "🩹 Bandagem", rarity: "uncommon"}
+                    ],
+                    'search-fridge': [
+                        {name: "🍖 Comida", rarity: "common"}, 
+                        {name: "💧 Água", rarity: "common"}, 
+                        {name: "🍾 Garrafa", rarity: "uncommon"}, 
+                        {name: "💊 Remédio", rarity: "rare"}, 
+                        {name: "🩹 Bandagem", rarity: "uncommon"}
+                    ],
+                    'search-furniture': [
+                        {name: "📻 Rádio", rarity: "rare"}, 
+                        {name: "🔌 Fios", rarity: "uncommon"}, 
+                        {name: "🔩 Parafusos", rarity: "uncommon"}, 
+                        {name: "🖊️ Caneta", rarity: "uncommon"}, 
+                        {name: "🩹 Bandagem", rarity: "uncommon"}
+                    ],
+                    'cactus-btn': [
+                        {name: "💧 Água", rarity: "common"}, 
+                        {name: "🌿 Folhas", rarity: "common"}, 
+                        {name: "🌿 Folhas", rarity: "common"}, 
+                        {name: "🍖 Comida", rarity: "common"}, 
+                        {name: "💊 Remédio", rarity: "rare"},
+                        {name: "🌵 Cacto", rarity: "uncommon"}
+                    ],
+                    'water-btn': [
+                        {name: "💧 Água", rarity: "common"}, 
+                        {name: "💧 Água", rarity: "common"}, 
+                        {name: "💧 Água", rarity: "common"}, 
+                        {name: "🍾 Garrafa", rarity: "uncommon"}, 
+                        {name: "🪨 Pedra", rarity: "common"}
+                    ]
+                };
+                
+                const possibleResources = resourceOptions[action] || [{name: "🪵 Madeira", rarity: "common"}];
+                const foundResource = possibleResources[Math.floor(Math.random() * possibleResources.length)];
+                
+                // Bônus para certas classes
+                let resourceAmount = 1;
+                if (window.gameState.class === 'survivor_hunter' && action === 'search-food') {
+                    resourceAmount = 2;
+                } else if (window.gameState.class === 'survivor_explorer' && action === 'explore-btn') {
+                    resourceAmount = 2;
+                } else if (window.gameState.class === 'survivor_medic' && action === 'collect-btn') {
+                    // Chance de encontrar itens médicos ao coletar arbustos
+                    if (Math.random() < 0.3) {
+                        foundResource.name = "🩹 Bandagem";
+                        foundResource.rarity = "uncommon";
+                    }
+                }
+                
+                if (!window.gameState.inventory[foundResource.name]) {
+                    window.gameState.inventory[foundResource.name] = resourceAmount;
+                } else {
+                    window.gameState.inventory[foundResource.name] += resourceAmount;
+                }
+                
+                updateInventoryDisplay();
+                
+                // Extrair nome para exibição
+                const firstSpaceIndex = foundResource.name.indexOf(' ');
+                const displayName = firstSpaceIndex !== -1 ? foundResource.name.substring(firstSpaceIndex + 1) : foundResource.name;
+                
+                // Mensagem customizada baseada na raridade
+                let messagePool;
+                if (foundResource.rarity === "common") {
+                    messagePool = LOG_MESSAGES.commonItem;
+                } else if (foundResource.rarity === "uncommon") {
+                    messagePool = LOG_MESSAGES.uncommonItem;
+                } else if (foundResource.rarity === "rare") {
+                    messagePool = LOG_MESSAGES.rareItem;
+                } else {
+                    messagePool = LOG_MESSAGES.commonItem;
+                }
+                
+                const randomMessage = messagePool[Math.floor(Math.random() * messagePool.length)];
+                const message = randomMessage
+                    .replace('{player}', window.gameState.playerName)
+                    .replace('{item}', displayName);
+                    
+                addLogEntry(message);
+                
+                // Atualizar inventário no Firebase
+                if (window.gameState.currentRoom && window.gameState.playerId) {
+                    firebaseDB.ref('rooms/' + window.gameState.currentRoom + '/players/' + window.gameState.playerId + '/inventory')
+                        .set(window.gameState.inventory);
+                }
+            }
+        }
+
+        // ===== FUNÇÕES UTILITÁRIAS =====
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function addLogEntry(message, type = 'normal') {
+            const log = document.getElementById('game-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = message;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function getRoleDisplayName(role) {
+            const roleNames = {
+                'host': 'Host 👑',
+                'survivor': 'Sobrevivente 🏕️',
+                'assassin': 'Assassino 🔪',
+                'unassigned': 'Não atribuído'
+            };
+            return roleNames[role] || role;
+        }
+
+        console.log("🎮 Jogo inicializado com sucesso!");
+    </script>
+</body>
+</html>
